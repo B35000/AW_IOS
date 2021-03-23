@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>669299184673-n5eliiss0c8hf6iejsleehtibok9l8sl.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.669299184673-n5eliiss0c8hf6iejsleehtibok9l8sl</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>669299184673-7sjg7g7pru8u4flrdpnr1fg7ljfl2ait.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCVgpR8DqZh5dvgQFRsc_yXfRtxrLOTsrk</string>
+	<key>GCM_SENDER_ID</key>
+	<string>669299184673</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.color.airwork</string>
+	<key>PROJECT_ID</key>
+	<string>airplatform-color-c</string>
+	<key>STORAGE_BUCKET</key>
+	<string>airplatform-color-c.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:669299184673:ios:a2bfad134384880fcfff60</string>
+	<key>DATABASE_URL</key>
+	<string>https://airplatform-color-c.firebaseio.com</string>
+</dict>
+</plist>
