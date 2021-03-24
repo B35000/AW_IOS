@@ -101,6 +101,25 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.
+        
+        //viewAccountSkills
+        let me = Auth.auth().currentUser!.uid
+        let myAcc = getApplicantAccount(me)!
+        
+        switch(segue.identifier ?? "") {
+            
+        case "viewAccountSkills":
+            guard let skillsViewController = segue.destination as? SkillsViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            skillsViewController.applicant_id = me
+            skillsViewController.title = myAcc.name
+
+            
+        default:
+            print("Unexpected Segue Identifier; \(segue.identifier)")
+            
+        }
     }
     
 

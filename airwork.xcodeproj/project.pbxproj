@@ -84,6 +84,8 @@
 		4392E2D325AAC0020098B22C /* JobDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392E2D225AAC0020098B22C /* JobDetailsViewController.swift */; };
 		4396594625C649DB000CEE91 /* RateWorkersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4396594525C649DB000CEE91 /* RateWorkersViewController.swift */; };
 		4396594E25C64D04000CEE91 /* ApplicantRatingTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4396594D25C64D04000CEE91 /* ApplicantRatingTableViewCell.swift */; };
+		439A1AE6260A5D5E007BCCB9 /* NewSkillViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 439A1AE5260A5D5E007BCCB9 /* NewSkillViewController.swift */; };
+		439A1AF6260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 439A1AF5260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift */; };
 		43A2361625A6A120003CB7A7 /* FlaggedWord+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A2361425A6A120003CB7A7 /* FlaggedWord+CoreDataClass.swift */; };
 		43A2361725A6A120003CB7A7 /* FlaggedWord+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A2361525A6A120003CB7A7 /* FlaggedWord+CoreDataProperties.swift */; };
 		43A2363B25A6DCB1003CB7A7 /* FinishedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A2363A25A6DCB1003CB7A7 /* FinishedViewController.swift */; };
@@ -253,6 +255,8 @@
 		4392E2D225AAC0020098B22C /* JobDetailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobDetailsViewController.swift; sourceTree = "<group>"; };
 		4396594525C649DB000CEE91 /* RateWorkersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateWorkersViewController.swift; sourceTree = "<group>"; };
 		4396594D25C64D04000CEE91 /* ApplicantRatingTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicantRatingTableViewCell.swift; sourceTree = "<group>"; };
+		439A1AE5260A5D5E007BCCB9 /* NewSkillViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSkillViewController.swift; sourceTree = "<group>"; };
+		439A1AF5260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSkillImageCollectionViewCell.swift; sourceTree = "<group>"; };
 		43A2361425A6A120003CB7A7 /* FlaggedWord+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FlaggedWord+CoreDataClass.swift"; path = "/Users/bry/Documents/Work/airwork_iPhone/airwork/Models/FlaggedWord+CoreDataClass.swift"; sourceTree = "<absolute>"; };
 		43A2361525A6A120003CB7A7 /* FlaggedWord+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FlaggedWord+CoreDataProperties.swift"; path = "/Users/bry/Documents/Work/airwork_iPhone/airwork/Models/FlaggedWord+CoreDataProperties.swift"; sourceTree = "<absolute>"; };
 		43A2363A25A6DCB1003CB7A7 /* FinishedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishedViewController.swift; sourceTree = "<group>"; };
@@ -587,6 +591,15 @@
 			path = "Rate Workers";
 			sourceTree = "<group>";
 		};
+		439A1AE4260A5C45007BCCB9 /* Add Skill */ = {
+			isa = PBXGroup;
+			children = (
+				439A1AE5260A5D5E007BCCB9 /* NewSkillViewController.swift */,
+				439A1AF5260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift */,
+			);
+			path = "Add Skill";
+			sourceTree = "<group>";
+		};
 		43B0E00B259DD3B700A94E09 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -703,6 +716,7 @@
 				431961AD25EB297E00FD6A4F /* Apply For Job */,
 				43C73A9F25E35DF400384F08 /* Quick Job */,
 				4386CB5C26018BCD00687AE0 /* ID Scanners */,
+				439A1AE4260A5C45007BCCB9 /* Add Skill */,
 				430FB5A3260436280043D8EE /* Payment */,
 			);
 			path = Home;
@@ -1042,6 +1056,7 @@
 				4320BCB925C41805006FA9C7 /* TakeDownTagCollectionViewCell.swift in Sources */,
 				43B7603525DA23A900FFF716 /* PickedUserCollectionViewCell.swift in Sources */,
 				430E288525DC1C8800A76ACB /* SharedLocationUser+CoreDataProperties.swift in Sources */,
+				439A1AE6260A5D5E007BCCB9 /* NewSkillViewController.swift in Sources */,
 				43207CE525D7AD8B004B4A9C /* PendingJobTagCollectionViewCell.swift in Sources */,
 				43B580CC25A129FA0025C824 /* NewJobNavigationViewController.swift in Sources */,
 				430E288625DC1C8800A76ACB /* SharedLocationUser+CoreDataClass.swift in Sources */,
@@ -1054,6 +1069,7 @@
 				430FB5AD260437320043D8EE /* PaymentInitiatorViewController.swift in Sources */,
 				43A2361625A6A120003CB7A7 /* FlaggedWord+CoreDataClass.swift in Sources */,
 				43E0D12325B8211F009C7F96 /* RatingTableViewCell.swift in Sources */,
+				439A1AF6260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift in Sources */,
 				43207CDB25D7930D004B4A9C /* PendingRatingsViewController.swift in Sources */,
 				4308BD7525F2C3AB00A866B7 /* QuickJobCollectionViewCell.swift in Sources */,
 				43518A5725A13EB5005A18C6 /* SettingsViewController.swift in Sources */,
