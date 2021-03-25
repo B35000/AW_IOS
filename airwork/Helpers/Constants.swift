@@ -54,7 +54,7 @@ struct Constants{
     let addFrontCard = "addFrontCard"
     let addBackCard = "addBackCard"
     let addPassportPage = "addPassportPage"
-    
+    let qualification_document = "qualification_document"
     let pay_perc = 0.055
     
     

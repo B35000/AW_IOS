@@ -13,7 +13,8 @@ import Firebase
 import CoreData
 import PDFKit
 
-class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate, UIDocumentMenuDelegate{
+class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate, UIDocumentMenuDelegate, UITextFieldDelegate{
+    @IBOutlet weak var viewContainer: UIView!
     @IBOutlet weak var titleTextField: UITextField!
     @IBOutlet weak var detailsTextField: MultilineTextField!
     @IBOutlet weak var pickedImagesCollectionView: UICollectionView!
@@ -21,12 +22,18 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
     @IBOutlet weak var ErrorLabel: UILabel!
     @IBOutlet weak var attachPdfLabel: UILabel!
     @IBOutlet weak var pdfContainer: UIView!
+    var pdfView = PDFView()
+    @IBOutlet weak var removeDocButton: UIButton!
     
     var titleText = ""
-    var pickedImages: [UIImage] = []
+    var skill_images: [UIImage : String] = [UIImage : String]()
+    var pickedImages = [UIImage]()
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     let db = Firestore.firestore()
     let constants = Constants.init()
+    let doc_max_size = (6 * (1024 * 1024))
+    
+    var edit_skill_id = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,6 +41,153 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         // Do any additional setup after loading the view.
         pickedImagesCollectionView.delegate = self
         pickedImagesCollectionView.dataSource = self
+        
+        if edit_skill_id != "" {
+            //were editing a skill
+            loadEditedSkill()
+            loadDocIfExists()
+        }
+        
+        titleTextField.delegate = self
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+                view.addGestureRecognizer(tap)
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        titleTextField.resignFirstResponder() // dismiss keyboard
+            return true
+    }
+    
+    @objc func handleTap() {
+        titleTextField.resignFirstResponder() // dismiss keyoard
+        detailsTextField.resignFirstResponder()
+    }
+    
+    
+    func loadEditedSkill(){
+        let skill = self.getSkillIfExists(self.edit_skill_id)!
+        titleTextField.text = skill.title!
+        detailsTextField.text = skill.details!
+        
+        self.title = "Edit Skill"
+        self.titleText = skill.title!
+        
+        //load any images if exist
+        var json = skill.images!
+        let decoder = JSONDecoder()
+        let jsonData = json.data(using: .utf8)!
+        print("images : \(json)")
+        do{
+            let des_images =  try decoder.decode(qual_image_list.self, from: jsonData).set_images
+            
+            for image in des_images {
+                let user_id = Auth.auth().currentUser!.uid
+                let storageRef = Storage.storage().reference()
+                
+                let ref = storageRef.child(constants.users_data)
+                    .child(user_id)
+                    .child(constants.qualification_images)
+                    .child("\(image.name).jpg")
+                
+                ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                    if let error = error {
+                      // Uh-oh, an error occurred!
+                        print("loading image from cloud failed \(error.localizedDescription)")
+                    } else {
+                      // Data for "images/island.jpg" is returned
+                        print("loaded an image \(image.name)")
+                        let im = UIImage(data: data!)
+                        self.skill_images[im!] = image.name
+                        self.pickedImages.append(im!)
+                        self.pickedImagesCollectionView.reloadData()
+                    }
+                  }
+            }
+            
+        }catch {
+            print("decoder failed")
+        }
+    }
+    
+    func loadDocIfExists(){
+        let user_id = Auth.auth().currentUser!.uid
+        let storageRef = Storage.storage().reference()
+        
+        let ref = storageRef.child(constants.users_data)
+            .child(user_id)
+            .child(constants.qualification_document)
+            .child("\(edit_skill_id).pdf")
+        
+        ref.getData(maxSize: Int64(doc_max_size)) { data, error in
+            if let error = error {
+              // Uh-oh, an error occurred!
+                print("loading doc from cloud failed")
+            } else {
+              // Data for "images/island.jpg" is returned
+                self.picked_doc = data
+                self.setDocOnView()
+            }
+          }
+    }
+    
+    func setDocOnView(){
+        attachPdfLabel.text = "Attached Document Exists"
+        attachPdfLabel.textColor = .label
+        removeDocButton.isHidden = true
+        
+        let uid = Auth.auth().currentUser!.uid
+        
+         do {
+            pdfView = PDFView()
+
+            pdfView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(pdfView)
+
+            pdfView.leadingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.leadingAnchor).isActive = true
+            pdfView.trailingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.trailingAnchor).isActive = true
+            pdfView.topAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.topAnchor).isActive = true
+            pdfView.bottomAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.bottomAnchor).isActive = true
+            
+            let d = PDFDocument(data: picked_doc!)
+            pdfView.document = d
+            
+            removeDocButton.isHidden = false
+            
+         } catch {
+             print("\(error.localizedDescription)")
+         }
+        
+        
+    }
+    
+    @IBAction func whenDeleteDocTapped(_ sender: Any) {
+        pdfView.document = nil
+        removeDocButton.isHidden = true
+        picked_doc = nil
+        
+        let user_id = Auth.auth().currentUser!.uid
+        let storageRef = Storage.storage().reference()
+        
+        let ref = storageRef.child(constants.users_data)
+            .child(user_id)
+            .child(constants.qualification_document)
+            .child("\(edit_skill_id).pdf")
+        
+        ref.delete { (error) in
+            if error != nil {
+                print(error.debugDescription)
+            }
+        }
+    }
+    
+    
+    
+    struct quali_images: Codable{
+        var images = [my_Image]()
+    }
+    
+    struct my_Image: Codable{
+        var image_name = ""
     }
     
 
@@ -137,47 +291,46 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
             do {
                 let resources = try out.resourceValues(forKeys:[.fileSizeKey])
                 let fileSize = resources.fileSize!
-                attachPdfLabel.text = "File size: \(fileSize) Path: \(String(describing: out.path))"
-    
-                picked_doc = try Data(contentsOf: out)
-    
+                let path = String(describing: out.path)
+                
+                
+                if fileSize < Int64(doc_max_size){
+                    attachPdfLabel.text = "Document Attached!"
+                    picked_doc = try Data(contentsOf: out)
+                    attachPdfLabel.textColor = .label
+                    removeDocButton.isHidden = true
+                    
+                    let uid = Auth.auth().currentUser!.uid
+                    
+                     do {
+                        pdfView = PDFView()
+
+                        pdfView.translatesAutoresizingMaskIntoConstraints = false
+                        view.addSubview(pdfView)
+
+                        pdfView.leadingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.leadingAnchor).isActive = true
+                        pdfView.trailingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.trailingAnchor).isActive = true
+                        pdfView.topAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.topAnchor).isActive = true
+                        pdfView.bottomAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.bottomAnchor).isActive = true
+                        
+
+                        
+                        let d = PDFDocument(data: picked_doc!)
+                        pdfView.document = d
+                        removeDocButton.isHidden = false
+                     } catch {
+                         print("\(error.localizedDescription)")
+                     }
+                    
+                }else{
+                    attachPdfLabel.text = "The file size limit is 3.5Mb."
+                    attachPdfLabel.textColor = .systemRed
+                }
     
             } catch {
                 print("something went wrong: \(error.localizedDescription)")
             }
             
-            let uid = Auth.auth().currentUser!.uid
-//            var url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("\(uid).pdf")
-            
-//             let url = self.getDocumentsDirectory().appendingPathComponent("\(uid).pdf")
-
-             do {
-//                 try picked_doc!.write(to: url)
-//                 let input = try String(contentsOf: url)
-//                 print(input)
-                
-                let pdfView = PDFView()
-
-                pdfView.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(pdfView)
-
-                pdfView.leadingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.leadingAnchor).isActive = true
-                pdfView.trailingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.trailingAnchor).isActive = true
-                pdfView.topAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.topAnchor).isActive = true
-                pdfView.bottomAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.bottomAnchor).isActive = true
-                
-//                guard let path = Bundle.main.url(forResource: input, withExtension: "pdf") else { return }
-                
-                let d = PDFDocument(data: picked_doc!)
-//                if let document = PDFDocument(url: path) {
-//                    pdfView.document = d
-//
-//                }
-                pdfView.document = d
-                
-             } catch {
-                 print("\(error.localizedDescription)")
-             }
         }
         
     }
@@ -240,7 +393,6 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
     
     @IBAction func whenTitleFieldEdited(_ sender: UITextField) {
         hideErrorLabel()
-        
         if !sender.hasText{
             continueButton.isEnabled = false
             showError("You need to set a title.")
@@ -249,10 +401,31 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
             continueButton.isEnabled = false
             showError("That title is too long!")
             self.titleText = ""
-        } else {
+        } else if checkIfSimilarSkillExists(title: sender.text!) {
+            continueButton.isEnabled = false
+            showError("You cant reuse that title")
+            self.titleText = ""
+        }
+        else {
             continueButton.isEnabled = true
             self.titleText = sender.text!
         }
+    }
+    
+    func checkIfSimilarSkillExists(title: String) -> Bool{
+        let uid = Auth.auth().currentUser!.uid
+        let my_skills = self.getJobApplicantSkillsIfExists(applicant_id: uid)
+        var their_titles: [String] = [String]()
+        
+        for skill in my_skills {
+            their_titles.append(skill.title!)
+        }
+        
+        if their_titles.contains(title){
+            return true
+        }
+        
+        return false
     }
     
     
@@ -276,29 +449,42 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         let me = self.getAccountIfExists(uid)
         let upload_time = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
         
-        let newQualRef = db.collection(constants.airworkers_ref)
+        var newQualRef = db.collection(constants.airworkers_ref)
             .document(uid)
             .collection(constants.qualifications)
             .document()
+        
+        if edit_skill_id != "" {
+            newQualRef = db.collection(constants.airworkers_ref)
+                .document(uid)
+                .collection(constants.qualifications)
+                .document(edit_skill_id)
+        }
         
         var qual_images = qual_image_list()
         for image in pickedImages {
             var qual_im = qual_image()
             qual_im.name = constants.randomString(16)
             
+            if skill_images[image] != nil {
+                //its not a new image
+                qual_im.name = skill_images[image]!
+            }
+            
             let storageRef = Storage.storage().reference()
-            let ref = storageRef.child(constants.users_data)
+            let img_ref = storageRef.child(constants.users_data)
                 .child(uid)
                 .child(constants.qualification_images)
                 .child("\(qual_im.name).jpg")
             
-            let uploadTask = ref.putData(image.resized(toWidth: 600.0)!.pngData()!, metadata: nil) { (metadata, error) in
+            let uploadTask = img_ref.putData(image.resized(toWidth: 600.0)!.jpegData(compressionQuality: 100)!, metadata: nil) { (metadata, error) in
               guard let metadata = metadata else {
                 // Uh-oh, an error occurred!
                 return
               }
-              // Metadata contains file metadata such as size, content-type.
-              let size = metadata.size
+                // Metadata contains file metadata such as size, content-type.
+                let size = metadata.size
+                print("written image in db")
             }
             
             qual_images.set_images.append(qual_im)
@@ -310,30 +496,48 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         do {
             let json_string = try encoder.encode(qual_images)
             job_image_list_json = String(data: json_string, encoding: .utf8)!
+        
+            let docData: [String: Any] = [
+                "title" : titleText,
+                "qualification_id" : newQualRef.documentID,
+                "user_id" : uid,
+                "images" : job_image_list_json,
+                "last_update" : upload_time,
+                "details" : detailsTextField.text
+            ]
             
+            
+            if picked_doc != nil {
+                let storageRef = Storage.storage().reference()
+                let ref = storageRef.child(constants.users_data)
+                    .child(uid)
+                    .child(constants.qualification_document)
+                    .child("\(newQualRef.documentID).pdf")
+                
+                let uploadTask = ref.putData(picked_doc!, metadata: nil) { (metadata, error) in
+                  guard let metadata = metadata else {
+                    // Uh-oh, an error occurred!
+                    return
+                  }
+                  // Metadata contains file metadata such as size, content-type.
+                  let size = metadata.size
+                    print("set doc in db")
+                }
+            }
+            
+            
+            newQualRef.setData(docData){ err in
+                if let err = err {
+                    print("Error writing document: \(err)")
+                } else {
+                    print("Document successfully written!")
+                    
+                    self.hideLoadingScreen()
+                }
+            }
             
         }catch {
            
-        }
-        
-        let docData: [String: Any] = [
-            "title" : titleText,
-            "qualification_id" : newQualRef.documentID,
-            "user_id" : uid,
-            "images" : job_image_list_json,
-            "last_update" : upload_time,
-            "details" : detailsTextField.text,
-         
-        ]
-        
-        newQualRef.setData(docData){ err in
-            if let err = err {
-                print("Error writing document: \(err)")
-            } else {
-                print("Document successfully written!")
-                
-                self.hideLoadingScreen()
-            }
         }
         
     }
@@ -371,15 +575,37 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
     {
         
         return 4;
+    
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
          // handle tap events
          print("You selected cell \(indexPath.item)!")
         
+        if skill_images[pickedImages[indexPath.row]] != nil {
+            self.deleteImage(image_name: skill_images[pickedImages[indexPath.row]]!)
+            skill_images.remove(at: skill_images.index(forKey: pickedImages[indexPath.row])!)
+        }
         pickedImages.remove(at: indexPath.row)
         pickedImagesCollectionView.reloadData()
+        
+        
      }
+    
+    func deleteImage(image_name: String){
+        let uid = Auth.auth().currentUser!.uid
+        let storageRef = Storage.storage().reference()
+        let ref = storageRef.child(constants.users_data)
+            .child(uid)
+            .child(constants.qualification_images)
+            .child("\(image_name).jpg")
+        
+        let uploadTask = ref.delete { (error) in
+            if error != nil {
+                print(error.debugDescription)
+            }
+        }
+    }
     
     
     
@@ -401,6 +627,26 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         }
         
         return []
+    }
+    
+    func getSkillIfExists(_ qualification_id: String) -> Qualification? {
+        do{
+            let request = Qualification.fetchRequest() as NSFetchRequest<Qualification>
+            
+            let predic = NSPredicate(format: "qualification_id == %@", qualification_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
     }
     
     func getAccountIfExists(_ user_id: String) -> Account? {

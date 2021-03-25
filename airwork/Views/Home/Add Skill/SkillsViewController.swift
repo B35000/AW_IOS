@@ -10,12 +10,11 @@ import Firebase
 import CoreData
 
 class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-    var constants = Constants.init()
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
     @IBOutlet weak var skillsTableView: UITableView!
     var applicant_id = ""
     var qualifs = [Qualification]()
+    var constants = Constants.init()
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,18 +24,47 @@ class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDa
         
         skillsTableView.delegate = self
         skillsTableView.dataSource = self
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(didGetNotification(_:)), name: NSNotification.Name(rawValue: constants.refresh_account), object: nil)
     }
     
+    @objc func didGetNotification(_ notification: Notification){
+        print("refreshing account!")
+        self.skillsTableView.reloadData()
+    }
 
-    /*
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.
+     //editQualificationSegue
+        
+        switch(segue.identifier ?? "") {
+                        
+        case "editQualificationSegue":
+            guard let editSkillViewController = segue.destination as? NewSkillViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            
+            guard let skillTableViewCell = sender as? SkillTableViewCell else {
+                fatalError("Unexpected sender: \(sender)")
+            }
+            
+            guard let indexPath = skillsTableView.indexPath(for: skillTableViewCell) else {
+                fatalError("The selected cell is not being displayed by the table")
+            }
+            
+            let picked_q = qualifs[indexPath.row]
+            editSkillViewController.edit_skill_id = picked_q.qualification_id!
+            
+        default:
+            print("Unexpected Segue Identifier")
+        }
     }
-    */
+    
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         qualifs.count

@@ -575,8 +575,6 @@
 				4361BB4A25AADC3100242513 /* HomeJobTagCollectionViewCell.swift */,
 				43E0D12225B8211F009C7F96 /* RatingTableViewCell.swift */,
 				43E0D12725B8225C009C7F96 /* RatingTagCollectionViewCell.swift */,
-				4322054225B9155E0049D16E /* SkillTableViewCell.swift */,
-				4322054725B917500049D16E /* SkillImageCollectionViewCell.swift */,
 				43FE2A7125BA6D1C00380613 /* ApplicantTableViewCell.swift */,
 			);
 			path = CollectionItems;
@@ -594,6 +592,9 @@
 		439A1AE4260A5C45007BCCB9 /* Add Skill */ = {
 			isa = PBXGroup;
 			children = (
+				4322053D25B914230049D16E /* SkillsViewController.swift */,
+				4322054225B9155E0049D16E /* SkillTableViewCell.swift */,
+				4322054725B917500049D16E /* SkillImageCollectionViewCell.swift */,
 				439A1AE5260A5D5E007BCCB9 /* NewSkillViewController.swift */,
 				439A1AF5260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift */,
 			);
@@ -703,7 +704,6 @@
 				43FE2A6925BA6CB200380613 /* AllApplicantsViewController.swift */,
 				430D4E3F25B7B72500B4A6EE /* ApplicantViewController.swift */,
 				43E0D12C25B822F3009C7F96 /* JobHistoryViewController.swift */,
-				4322053D25B914230049D16E /* SkillsViewController.swift */,
 				435BB37B25BC85820073FDE2 /* SelectApplicantViewController.swift */,
 				43649D3325F9A1F500AA078B /* Job Details */,
 				4389BB2A25C7A71900F0EDA7 /* Contacts */,
