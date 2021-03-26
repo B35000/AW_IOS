@@ -10,14 +10,19 @@ import Firebase
 
 class SkillTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDataSource,
                           UICollectionViewDelegateFlowLayout{
-    
+    @IBOutlet weak var viewAttachedDocButton: UIButton!
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var detailsLabel: UILabel!
     @IBOutlet weak var imagesCollection: UICollectionView!
+    @IBOutlet weak var viewDocContainer: UIView!
     
     var skill_images = [String]()
     var user_id = ""
     var constants = Constants.init()
+    var actionBlock: (() -> Void)? = nil
+    var skill_id = ""
+    let doc_max_size = (6 * (1024 * 1024))
+    var picked_doc: Data? = nil
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -31,6 +36,36 @@ class SkillTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         super.setSelected(selected, animated: animated)
 
         // Configure the view for the selected state
+        
+    }
+    
+    func loadDocIfExists(){
+        self.viewAttachedDocButton.isHidden = true
+        let user_id = Auth.auth().currentUser!.uid
+        let storageRef = Storage.storage().reference()
+        
+        let ref = storageRef.child(constants.users_data)
+            .child(user_id)
+            .child(constants.qualification_document)
+            .child("\(skill_id).pdf")
+        
+        ref.getData(maxSize: Int64(doc_max_size)) { data, error in
+            if let error = error {
+              // Uh-oh, an error occurred!
+                print("loading doc from cloud failed \(error.localizedDescription)")
+            } else {
+              // Data for "images/island.jpg" is returned
+                self.picked_doc = data
+                self.viewAttachedDocButton.isHidden = false
+            }
+          }
+    }
+    
+    
+    @IBAction func whenViewPdfTapped(_ sender: Any) {
+        if self.picked_doc != nil {
+            actionBlock?()
+        }
     }
     
     

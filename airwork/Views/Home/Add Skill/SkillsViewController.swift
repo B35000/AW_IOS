@@ -11,10 +11,15 @@ import CoreData
 
 class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     @IBOutlet weak var skillsTableView: UITableView!
+    @IBOutlet weak var openPdfButton: UIButton!
+    @IBOutlet weak var openEditSkillButton: UIButton!
+    
     var applicant_id = ""
     var qualifs = [Qualification]()
     var constants = Constants.init()
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var picked_doc: Data? = nil
+    var picked_q: Qualification? = nil
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,16 +54,24 @@ class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDa
                 fatalError("Unexpected destination: \(segue.destination)")
             }
             
-            guard let skillTableViewCell = sender as? SkillTableViewCell else {
-                fatalError("Unexpected sender: \(sender)")
+//            guard let skillTableViewCell = sender as? SkillTableViewCell else {
+//                fatalError("Unexpected sender: \(sender)")
+//            }
+//
+//            guard let indexPath = skillsTableView.indexPath(for: skillTableViewCell) else {
+//                fatalError("The selected cell is not being displayed by the table")
+//            }
+//
+//            picked_q = qualifs[indexPath.row]
+            editSkillViewController.edit_skill_id = picked_q!.qualification_id!
+            
+        case "viewPdfSegue":
+            guard let viewPdfViewController = segue.destination as? ViewPdfViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
             }
             
-            guard let indexPath = skillsTableView.indexPath(for: skillTableViewCell) else {
-                fatalError("The selected cell is not being displayed by the table")
-            }
+            viewPdfViewController.picked_doc = picked_doc
             
-            let picked_q = qualifs[indexPath.row]
-            editSkillViewController.edit_skill_id = picked_q.qualification_id!
             
         default:
             print("Unexpected Segue Identifier")
@@ -78,41 +91,61 @@ class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDa
         cell.detailsLabel.text = qualification.details!
         
         if qualification.details == "" {
-            cell.detailsLabel.text = "None."
+//            cell.detailsLabel.isHidden = true
+            cell.detailsLabel.text = "No details available."
         }
         
         cell.user_id = qualification.user_id!
         cell.imagesCollection.isHidden = false
+        cell.skill_id = qualification.qualification_id!
+        cell.loadDocIfExists()
         
         var json = qualification.images!
+        print("json data for images: \(json)")
         let decoder = JSONDecoder()
         let jsonData = json.data(using: .utf8)!
         
         do{
-            let des_images =  try decoder.decode(quali_images.self, from: jsonData).images
+            let des_images =  try decoder.decode(quali_images.self, from: jsonData).set_images
             
             if des_images.isEmpty{
+                print("images count for skill : \(des_images.count)")
                 cell.imagesCollection.isHidden = true
             }
             
             for image in des_images {
-                cell.skill_images.append(image.image_name)
+                cell.skill_images.append(image.name)
             }
             
         }catch {
-            print("decoder failed")
+            print("decoder failed \(error.localizedDescription)")
             cell.imagesCollection.isHidden = true
+        }
+        
+        cell.actionBlock = {
+            self.picked_doc = cell.picked_doc!
+            self.openPdfButton.sendActions(for: .touchUpInside)
         }
         
         return cell
     }
     
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let my_id = Auth.auth().currentUser!.uid
+        print("clicked item on table view \(indexPath.row)")
+        if applicant_id == my_id {
+//            self.performSegue(withIdentifier: "editQualificationSegue", sender: self)
+            picked_q = qualifs[indexPath.row]
+            self.openEditSkillButton.sendActions(for: .touchUpInside)
+        }
+    }
+    
     struct quali_images: Codable{
-        var images = [my_Image]()
+        var set_images = [my_Image]()
     }
     
     struct my_Image: Codable{
-        var image_name = ""
+        var name = ""
     }
     
     func getJobApplicantSkillsIfExists(applicant_id: String) -> [Qualification]{

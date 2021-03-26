@@ -22,6 +22,7 @@ class ScanIdViewController: UIViewController {
     @IBOutlet weak var image2View: UIImageView!
     @IBOutlet weak var image2StatusView: UIImageView!
     
+    @IBOutlet weak var errorLabel: UILabel!
     @IBOutlet weak var doneBarButton: UIBarButtonItem!
     
     
@@ -46,6 +47,10 @@ class ScanIdViewController: UIViewController {
         // Do any additional setup after loading the view.
         
         load_scanned_cards()
+        image1View.layer.cornerRadius = 15
+        image2View.layer.cornerRadius = 15
+        
+        scanIdBackContainer.isHidden = true
     }
     
     func load_scanned_cards() {
@@ -148,9 +153,9 @@ class ScanIdViewController: UIViewController {
             case 0:
                 print("tapped 0")
                 scanIdFrontContainer.isHidden = false
-                scanIdBackContainer.isHidden = false
+//                scanIdBackContainer.isHidden = false
                 scanPassportPageContainer.isHidden = true
-                
+                errorLabel.text = ""
                 removeImages()
                 isScanningPassportInstead = false
                 
@@ -159,7 +164,7 @@ class ScanIdViewController: UIViewController {
                 scanIdFrontContainer.isHidden = true
                 scanIdBackContainer.isHidden = true
                 scanPassportPageContainer.isHidden = false
-                
+                errorLabel.text = ""
                 removeImages()
                 isScanningPassportInstead = true
                 
@@ -275,34 +280,43 @@ class ScanIdViewController: UIViewController {
     }
     
     
-    func whenScanningDone(image: UIImage, accepted: Bool) {
+    func whenScanningDone(image: UIImage, accepted: Bool, message: String) {
         
         if scanning_id == constants.addFrontCard {
             image1View.image = image
             if accepted {
                 image1StatusView.image = UIImage(named: "ScanningAccepted")
                 self.isFirstImageAccepted = true
+                errorLabel.text = ""
+                
+                scanIdBackContainer.isHidden = false
+                
             }else{
                 image1StatusView.image = UIImage(named: "ScanningRejected")
                 self.isFirstImageAccepted = false
+                errorLabel.text = message
             }
         }else if scanning_id == constants.addBackCard {
             image2View.image = image
             if accepted {
                 image2StatusView.image = UIImage(named: "ScanningAccepted")
                 self.isSecondImageAccepted = true
+                errorLabel.text = ""
             }else{
                 image2StatusView.image = UIImage(named: "ScanningRejected")
                 self.isSecondImageAccepted = false
+                errorLabel.text = message
             }
         }else if scanning_id == constants.addPassportPage {
             image1View.image = image
             if accepted {
                 image1StatusView.image = UIImage(named: "ScanningAccepted")
                 self.isFirstImageAccepted = true
+                errorLabel.text = ""
             }else{
                 image1StatusView.image = UIImage(named: "ScanningRejected")
                 self.isFirstImageAccepted = false
+                errorLabel.text = message
             }
         }
         
@@ -310,7 +324,7 @@ class ScanIdViewController: UIViewController {
     }
     
     func showFinishButtonIfBothImgaccepted(){
-        if isFirstImageAccepted && isSecondImageAccepted {
+        if (isFirstImageAccepted && isSecondImageAccepted) || (isFirstImageAccepted && isScanningPassportInstead) {
             self.doneBarButton.isEnabled = true
         }else{
             self.doneBarButton.isEnabled = false
@@ -318,31 +332,51 @@ class ScanIdViewController: UIViewController {
     }
     
     func check_if_scanning_is_new_id(image: UIImage, accepted: Bool, my_scanned_words: [String]){
+        var found_matching_card = false
         for user_scanning in scanned_cards {
             let users_last_3_scanned_words =
-                Array(user_scanning[user_scanning.index(user_scanning.endIndex, offsetBy: -3) ..< user_scanning.endIndex])
+                Array(user_scanning[user_scanning.index(user_scanning.endIndex, offsetBy: -4) ..< user_scanning.endIndex])
             
             let my_last_3_scanned_words =
-                Array(my_scanned_words[my_scanned_words.index(my_scanned_words.endIndex, offsetBy: -3) ..< my_scanned_words.endIndex])
+                Array(my_scanned_words[my_scanned_words.index(my_scanned_words.endIndex, offsetBy: -4) ..< my_scanned_words.endIndex])
             
-            if(
-                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[0]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[0])) &&
-                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[1]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[1])) &&
-                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[2]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[2]))
-            ){
-                print("found a matching card")
-                whenScanningDone(image: image, accepted: false)
+            for user_scan_line in users_last_3_scanned_words {
+                if user_scan_line.count > 5 {
+                    for item in my_last_3_scanned_words {
+                        if(self.remove_unwanted_scanned_chars(text: user_scan_line).contains( self.remove_unwanted_scanned_chars(text: item))
+                        ){
+                            print("---\(self.remove_unwanted_scanned_chars(text: user_scan_line)) matchees: \(self.remove_unwanted_scanned_chars(text: item))---")
+                            whenScanningDone(image: image, accepted: false, message: "A similar card already in use")
+                            found_matching_card = true
+                        }else{
+//                            print("\(self.remove_unwanted_scanned_chars(text: user_scan_line)) doesnt match: \(self.remove_unwanted_scanned_chars(text: item))")
+                        }
+                    }
+                }
             }
-            
-            whenScanningDone(image: image, accepted: true)
-            
-            if (scanning_id == constants.addFrontCard || scanning_id == constants.addPassportPage) {
-                self.frontTexts.removeAll()
-                self.frontTexts.append(contentsOf: my_scanned_words)
-            }else{
-                self.backTexts.removeAll()
-                self.backTexts.append(contentsOf: my_scanned_words)
-            }
+//            if(
+//                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[0]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[0])) &&
+//                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[1]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[1])) &&
+//                self.remove_unwanted_scanned_chars(text: users_last_3_scanned_words[2]).contains(self.remove_unwanted_scanned_chars(text: my_last_3_scanned_words[2]))
+//            ){
+//                print("found a matching card")
+//                whenScanningDone(image: image, accepted: false)
+//                found_matching_card = true
+//            }else{
+//                print("\(my_last_3_scanned_words) doesnt match: \(users_last_3_scanned_words)")
+//            }
+        }
+        
+        if !found_matching_card {
+            whenScanningDone(image: image, accepted: true, message: "")
+        }
+        
+        if (scanning_id == constants.addFrontCard || scanning_id == constants.addPassportPage) {
+            self.frontTexts.removeAll()
+            self.frontTexts.append(contentsOf: my_scanned_words)
+        }else{
+            self.backTexts.removeAll()
+            self.backTexts.append(contentsOf: my_scanned_words)
         }
     }
     
@@ -353,10 +387,12 @@ class ScanIdViewController: UIViewController {
         
         if my_country == "Kenya" {
             var new_text = text.replacingOccurrences(of: " ", with: "")
-            new_text.replacingOccurrences(of: "<", with: "")
-            new_text.replacingOccurrences(of: "O", with: "0")
+            var new2 = new_text.replacingOccurrences(of: "<", with: "")
+            var new3 = new2.replacingOccurrences(of: "O", with: "0")
             
-            return new_text
+//            print("trimmed texts: \(new_text)")
+            
+            return new3
         }
         
         return text

@@ -180,16 +180,6 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         }
     }
     
-    
-    
-    struct quali_images: Codable{
-        var images = [my_Image]()
-    }
-    
-    struct my_Image: Codable{
-        var image_name = ""
-    }
-    
 
     
     // MARK: - Navigation

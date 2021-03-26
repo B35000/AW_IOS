@@ -24,6 +24,7 @@
 		430FB5B72604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FB5B62604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift */; };
 		431961AF25EB29CA00FD6A4F /* ApplyForJobViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431961AE25EB29CA00FD6A4F /* ApplyForJobViewController.swift */; };
 		431961B725EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431961B625EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift */; };
+		431F82B1260DB3D60085B806 /* ViewPdfViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431F82B0260DB3D60085B806 /* ViewPdfViewController.swift */; };
 		43207CDB25D7930D004B4A9C /* PendingRatingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43207CDA25D7930D004B4A9C /* PendingRatingsViewController.swift */; };
 		43207CE025D7936F004B4A9C /* PendingRatingTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43207CDF25D7936F004B4A9C /* PendingRatingTableViewCell.swift */; };
 		43207CE525D7AD8B004B4A9C /* PendingJobTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43207CE425D7AD8B004B4A9C /* PendingJobTagCollectionViewCell.swift */; };
@@ -189,6 +190,7 @@
 		430FB5B62604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobPaymentTagCollectionViewCell.swift; sourceTree = "<group>"; };
 		431961AE25EB29CA00FD6A4F /* ApplyForJobViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyForJobViewController.swift; sourceTree = "<group>"; };
 		431961B625EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyForJobTagCollectionViewCell.swift; sourceTree = "<group>"; };
+		431F82B0260DB3D60085B806 /* ViewPdfViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewPdfViewController.swift; sourceTree = "<group>"; };
 		43207CDA25D7930D004B4A9C /* PendingRatingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingRatingsViewController.swift; sourceTree = "<group>"; };
 		43207CDF25D7936F004B4A9C /* PendingRatingTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingRatingTableViewCell.swift; sourceTree = "<group>"; };
 		43207CE425D7AD8B004B4A9C /* PendingJobTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingJobTagCollectionViewCell.swift; sourceTree = "<group>"; };
@@ -597,6 +599,7 @@
 				4322054725B917500049D16E /* SkillImageCollectionViewCell.swift */,
 				439A1AE5260A5D5E007BCCB9 /* NewSkillViewController.swift */,
 				439A1AF5260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift */,
+				431F82B0260DB3D60085B806 /* ViewPdfViewController.swift */,
 			);
 			path = "Add Skill";
 			sourceTree = "<group>";
@@ -1090,6 +1093,7 @@
 				430FB5B72604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift in Sources */,
 				43D894EA25D349D10012601B /* VerifyEmailViewController.swift in Sources */,
 				43C9C38F25A20E8E00F26F6C /* LocationViewController.swift in Sources */,
+				431F82B1260DB3D60085B806 /* ViewPdfViewController.swift in Sources */,
 				43784B9D259B879600CA65A5 /* SpinnerViewController.swift in Sources */,
 				43A6EDB425F9CA1D003C0729 /* NewJobItemCollectionViewCell.swift in Sources */,
 				4396594E25C64D04000CEE91 /* ApplicantRatingTableViewCell.swift in Sources */,
