@@ -2,8 +2,8 @@
   "colors" : [
     {
       "color" : {
-        "platform" : "ios",
-        "reference" : "linkColor"
+        "platform" : "osx",
+        "reference" : "systemBlueColor"
       },
       "idiom" : "universal"
     },
@@ -18,9 +18,9 @@
         "color-space" : "display-p3",
         "components" : {
           "alpha" : "1.000",
-          "blue" : "0x12",
-          "green" : "0x13",
-          "red" : "0x12"
+          "blue" : "0xCA",
+          "green" : "0x61",
+          "red" : "0x29"
         }
       },
       "idiom" : "universal"

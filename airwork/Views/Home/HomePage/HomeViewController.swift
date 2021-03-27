@@ -64,6 +64,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var quckJobTagsCollection: UICollectionView!
     @IBOutlet weak var createJobFromTagsButton: UIButton!
     @IBOutlet weak var jobTagPrices: UILabel!
+    @IBOutlet weak var createNewTagButton: UIButton!
+    
+    
+    @IBOutlet weak var switchAccountContainer: UIView!
+    @IBOutlet weak var switchTitleLabel: UILabel!
+    @IBOutlet weak var switchDetailsLabel: UILabel!
+    
+    @IBOutlet weak var pendingRatingsContainer: UIView!
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -133,9 +141,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         setUpQuickJobs()
         setUpQuickTags()
         
+        pendingRatingsContainer.isHidden = true
         
         if amIAirworker(){
             self.title = "Airworker"
+            switchTitleLabel.text = "Switch To Airwork"
+            switchDetailsLabel.text = "Use the fastest job network to find and hire people on demand."
             setAccountInfo()
             
             newJobCardView.isHidden = true
@@ -145,10 +156,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             myAccountContainer.isHidden = false
             searchTagContainer.isHidden = true
             
+            getPendingJobs()
+            
             setUpJobMap()
             
         }else{
             self.title = "Home"
+            switchTitleLabel.text = "Switch To Airworker"
+            switchDetailsLabel.text = "Access the fastest job network to find job opportunities and be productive."
+            
             
             newJobCardView.isHidden = false
             appliedJobsContainer.isHidden = true
@@ -157,7 +173,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             myAccountContainer.isHidden = true
             searchTagContainer.isHidden = false
             
-            getPendingJobs()
+            pendingRatingsContainer.isHidden = true
+            
+            getUnratedJobs()
             
             if !myJobs.isEmpty{
                 openPendingRatingsButton.isHidden = false
@@ -174,6 +192,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             requestDeliveryView.addGestureRecognizer(new_job_tap)
             pickPersonView.addGestureRecognizer(pick_user_tap)
         }
+        
+    }
+    
+    func getUnratedJobs(){
         
     }
     
@@ -783,10 +805,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             quckJobTagsCollection.reloadData()
             
             if selectedTags.isEmpty {
-                createJobFromTagsButton.isHidden = true
+                createJobFromTagsButton.isEnabled = false
                 jobTagPrices.text = "Pick a tag..."
             }else{
-                createJobFromTagsButton.isHidden = false
+                createJobFromTagsButton.isEnabled = true
                 calculatePriceFromTag()
             }
             
@@ -814,7 +836,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func whenSearchTyped(_ sender: UITextField) {
         if !sender.hasText{
-            createJobFromTagsButton.isHidden = true
+            createJobFromTagsButton.isEnabled = false
         }else{
             typedItem = sender.text!
 
@@ -822,10 +844,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             quckJobTagsCollection.reloadData()
 
             if selectedTags.isEmpty {
-                createJobFromTagsButton.isHidden = true
+                createJobFromTagsButton.isEnabled = false
                 jobTagPrices.text = "Pick a tag..."
             }else{
-                createJobFromTagsButton.isHidden = false
+                createJobFromTagsButton.isEnabled = true
                 calculatePriceFromTag()
             }
         }
