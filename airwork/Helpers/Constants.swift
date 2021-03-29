@@ -7,7 +7,7 @@
 
 import Foundation
 import UIKit
-
+import CoreData
 
 struct Constants{
     let users_ref = "users"
@@ -56,6 +56,7 @@ struct Constants{
     let addPassportPage = "addPassportPage"
     let qualification_document = "qualification_document"
     let pay_perc = 0.055
+    let job_document = "job_document"
     
     
     func randomString(_ length: Int) -> String {
@@ -73,6 +74,76 @@ struct Constants{
 
         return randomString
     }
+    
+    func getResourceIfExists(data_id: String, context: NSManagedObjectContext) -> Resource?{
+        var data = getData(data_id, context: context)
+        
+        if data != nil {
+            let now = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
+            data?.last_referenced = Int64(now)
+            do{
+                try context.save()
+            }catch{
+                
+            }
+            
+            return data
+        }
+        
+        return nil
+    }
+    
+    func storeResource(data_id: String, context: NSManagedObjectContext, data: Data, author_id: String){
+        let now = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
+        var new_resource = getData(data_id, context: context)
+        
+        if new_resource == nil {
+            new_resource = Resource(context: context)
+        }
+        new_resource?.author_id = author_id
+        new_resource?.data = data
+        new_resource?.data_id = data_id
+        new_resource?.last_referenced = Int64(now)
+        
+        do{
+            try context.save()
+        }catch{
+            
+        }
+    }
+    
+    func removeResource(data_id: String, context: NSManagedObjectContext){
+        var new_resource = getData(data_id, context: context)
+        
+        if new_resource != nil {
+            do{
+                try context.delete(new_resource!)
+            }catch{
+                
+            }
+        }
+    }
+    
+    func getData(_ data_id: String, context: NSManagedObjectContext) -> Resource? {
+        do{
+            let request = Resource.fetchRequest() as NSFetchRequest<Resource>
+            
+            let predic = NSPredicate(format: "data_id == %@", data_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
 }
 
 

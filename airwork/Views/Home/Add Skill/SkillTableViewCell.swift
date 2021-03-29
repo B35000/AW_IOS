@@ -16,6 +16,7 @@ class SkillTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
     @IBOutlet weak var imagesCollection: UICollectionView!
     @IBOutlet weak var viewDocContainer: UIView!
     
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var skill_images = [String]()
     var user_id = ""
     var constants = Constants.init()
@@ -41,13 +42,32 @@ class SkillTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
     
     func loadDocIfExists(){
         self.viewAttachedDocButton.isHidden = true
-        let user_id = Auth.auth().currentUser!.uid
+//        let user_id = Auth.auth().currentUser!.uid
         let storageRef = Storage.storage().reference()
         
         let ref = storageRef.child(constants.users_data)
             .child(user_id)
             .child(constants.qualification_document)
             .child("\(skill_id).pdf")
+        
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            self.picked_doc = resource.data
+            self.viewAttachedDocButton.isHidden = false
+        }else{
+            ref.getData(maxSize: Int64(doc_max_size)) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    self.picked_doc = data
+                    self.viewAttachedDocButton.isHidden = false
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: self.user_id)
+                }
+              }
+        }
         
         ref.getData(maxSize: Int64(doc_max_size)) { data, error in
             if let error = error {
@@ -84,16 +104,25 @@ class SkillTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
             .child(constants.qualification_images)
             .child("\(image_name).jpg")
         
-        ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading image from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-                let im = UIImage(data: data!)
-                cell.imageView.image = im
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            let im = UIImage(data: resource.data!)
+            cell.imageView.image = im
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    let im = UIImage(data: data!)
+                    cell.imageView.image = im
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: self.user_id)
+                }
+              }
+        }
+        
         
         return cell
     }

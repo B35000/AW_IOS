@@ -74,23 +74,38 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
             .child(me)
             .child("avatar.jpg")
         
-        ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading image from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-              let im = UIImage(data: data!)
-                self.profileImageView.image = im
-                
-                let image = self.profileImageView!
-                image.layer.borderWidth = 1
-                image.layer.masksToBounds = false
-                image.layer.borderColor = UIColor.white.cgColor
-                image.layer.cornerRadius = image.frame.height/2
-                image.clipsToBounds = true
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            let im = UIImage(data: resource.data!)
+            self.profileImageView.image = im
+            
+            let image = self.profileImageView!
+            image.layer.borderWidth = 1
+            image.layer.masksToBounds = false
+            image.layer.borderColor = UIColor.white.cgColor
+            image.layer.cornerRadius = image.frame.height/2
+            image.clipsToBounds = true
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    let im = UIImage(data: data!)
+                    self.profileImageView.image = im
+                    
+                    let image = self.profileImageView!
+                    image.layer.borderWidth = 1
+                    image.layer.masksToBounds = false
+                    image.layer.borderColor = UIColor.white.cgColor
+                    image.layer.cornerRadius = image.frame.height/2
+                    image.clipsToBounds = true
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: me)
+                }
+              }
+        }
         
     }
 
@@ -191,13 +206,16 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
             .child(constants.job_images)
             .child("avatar.jpg")
         
-        let uploadTask = ref.putData(selectedImage.resized(toWidth: 600.0)!.pngData()!, metadata: nil) { (metadata, error) in
+        let im_data = selectedImage.resized(toWidth: 600.0)!.pngData()
+        
+        let uploadTask = ref.putData(im_data!, metadata: nil) { (metadata, error) in
           guard let metadata = metadata else {
             // Uh-oh, an error occurred!
             return
           }
-          // Metadata contains file metadata such as size, content-type.
-          let size = metadata.size
+            // Metadata contains file metadata such as size, content-type.
+            let size = metadata.size
+            self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: im_data!, author_id: me)
         }
         
     }

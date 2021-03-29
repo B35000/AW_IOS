@@ -63,6 +63,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var searchTagField: UITextField!
     @IBOutlet weak var quckJobTagsCollection: UICollectionView!
     @IBOutlet weak var createJobFromTagsButton: UIButton!
+    @IBOutlet weak var createJobFromTagsButtonContainer: CardView!
     @IBOutlet weak var jobTagPrices: UILabel!
     @IBOutlet weak var createNewTagButton: UIButton!
     
@@ -220,23 +221,38 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             .child(my_id)
             .child("avatar.jpg")
         
-        ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading image from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-              let im = UIImage(data: data!)
-                self.myAccountAvatar.image = im
-                
-                let image = self.myAccountAvatar!
-                image.layer.borderWidth = 1
-                image.layer.masksToBounds = false
-                image.layer.borderColor = UIColor.white.cgColor
-                image.layer.cornerRadius = image.frame.height/2
-                image.clipsToBounds = true
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            let im = UIImage(data: resource.data!)
+            self.myAccountAvatar.image = im
+              
+            let image = self.myAccountAvatar!
+            image.layer.borderWidth = 1
+            image.layer.masksToBounds = false
+            image.layer.borderColor = UIColor.white.cgColor
+            image.layer.cornerRadius = image.frame.height/2
+            image.clipsToBounds = true
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                  let im = UIImage(data: data!)
+                    self.myAccountAvatar.image = im
+                    
+                    let image = self.myAccountAvatar!
+                    image.layer.borderWidth = 1
+                    image.layer.masksToBounds = false
+                    image.layer.borderColor = UIColor.white.cgColor
+                    image.layer.cornerRadius = image.frame.height/2
+                    image.clipsToBounds = true
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: my_id)
+                }
+              }
+        }
         
         let unixTimestamp = Double(myAccount.sign_up_time)/1000
         let date = Date(timeIntervalSince1970: unixTimestamp)
@@ -806,9 +822,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if selectedTags.isEmpty {
                 createJobFromTagsButton.isEnabled = false
+                createJobFromTagsButtonContainer.isHidden = true
                 jobTagPrices.text = "Pick a tag..."
             }else{
                 createJobFromTagsButton.isEnabled = true
+                createJobFromTagsButtonContainer.isHidden = false
                 calculatePriceFromTag()
             }
             
@@ -837,6 +855,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBAction func whenSearchTyped(_ sender: UITextField) {
         if !sender.hasText{
             createJobFromTagsButton.isEnabled = false
+            createJobFromTagsButtonContainer.isHidden = true
         }else{
             typedItem = sender.text!
 
@@ -845,9 +864,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
             if selectedTags.isEmpty {
                 createJobFromTagsButton.isEnabled = false
+                createJobFromTagsButtonContainer.isHidden = true
                 jobTagPrices.text = "Pick a tag..."
             }else{
                 createJobFromTagsButton.isEnabled = true
+                createJobFromTagsButtonContainer.isHidden = false
                 calculatePriceFromTag()
             }
         }
@@ -1483,6 +1504,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         dateComponent.day = 1
         
         var end_day = Calendar.current.date(byAdding: dateComponent, to: date)!
+        let expiry_date = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: end_day)!
+        var expiry_date_mills = Int64((expiry_date.timeIntervalSince1970 * 1000.0).rounded())
         
         let pay: [String : Any] = [
             "amount" : amount,
@@ -1579,6 +1602,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var isJobOk = true
         
         let docData: [String: Any] = [
+            "expiry_date" : expiry_date_mills,
             "job_title" : titleText,
             "job_details" : details,
             "job_worker_count" : number,
@@ -1747,6 +1771,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         //clear contacts
         //clear notifications
         //clear complaints
+        //clear accounts
         
         let contactRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Contact")
         let contactDeleteRequest = NSBatchDeleteRequest( fetchRequest: contactRequest)
@@ -1759,12 +1784,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         let RatingRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Rating")
         let RatingDeleteRequest = NSBatchDeleteRequest( fetchRequest: RatingRequest)
+        
+        let AccountRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Account")
+        let AccountDeleteRequest = NSBatchDeleteRequest( fetchRequest: RatingRequest)
 
         do{
             try context.execute(contactDeleteRequest)
             try context.execute(NotificationDeleteRequest)
             try context.execute(ComplaintDeleteRequest)
             try context.execute(RatingDeleteRequest)
+            try context.execute(AccountDeleteRequest)
         }catch let error as NSError {
             print("error clearing data for account switch")
         }
@@ -1973,6 +2002,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 fatalError("Unexpected destination: \(segue.destination)")
             }
             jobDetailViewController.job_id = map_job_id
+            
+        case "viewMyAccountSkills":
+            guard let skillsViewController = segue.destination as? SkillsViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            let me = Auth.auth().currentUser!.uid
+            let myAcc = getAccountIfExists(uid: me)
+            
+            skillsViewController.applicant_id = me
+            skillsViewController.title = myAcc!.name!
             
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")
@@ -2192,7 +2231,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         rating = Rating(context: self.context)
                     }
                     
-                    print("loaded rating-----------------: \(rating_id)")
+//                    print("loaded rating-----------------: \(rating_id)")
                     rating?.rating = rating_val
                     rating?.rating_time = Int64(rating_time)
                     rating?.job_id = job_id
@@ -2495,11 +2534,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         print("loading new jobs --------------------")
+        let now = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
         
         newJobDataListener = db.collection(constants.jobs_ref)
             .document(country)
             .collection(constants.country_jobs)
-            .order(by: "upload_time", descending: true).limit(to: 50)
+            .order(by: "upload_time", descending: true)
+            .whereField("expiry_date", isGreaterThan: now)
             .addSnapshotListener{ querySnapshot, error in
                 //if fetching the doc failed
                 guard let snapshot = querySnapshot else {
@@ -2669,7 +2710,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             self.saveContext(self.constants.refresh_job)
                             
                             if self.setOtherAccountListeners[uploader_id] == nil {
-                                self.listenForAnotherUserInfo(user_id: uploader_id)
+                                if self.getAccountIfExists(uid: uploader_id) == nil {
+                                    self.listenForAnotherUserInfo(user_id: uploader_id)
+                                }
                             }
                         }else{
 //                            print("\(job?.job_id!) is not ok!!")
@@ -3111,7 +3154,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.saveContext(self.constants.refresh_job)
                 
                 if self.setOtherAccountListeners[uploader_id] == nil {
-                    self.listenForAnotherUserInfo(user_id: uploader_id)
+                    var uploader_acc = self.getAccountIfExists(uid: uploader_id)
+                    if uploader_acc == nil {
+                        if self.getAccountIfExists(uid: uploader_id) == nil {
+                            self.listenForAnotherUserInfo(user_id: uploader_id)
+                        }
+                    }
                 }
                 
             }
@@ -3205,7 +3253,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             
                             if self.setOtherAccountListeners[applicant_uid] == nil {
                                 print("adding listener for user: \(applicant_uid) from job applicants ref")
-                                self.listenForAnotherUserInfo(user_id: applicant_uid)
+                                if self.getAccountIfExists(uid: applicant_uid) == nil {
+                                    self.listenForAnotherUserInfo(user_id: applicant_uid)
+                                }
                             }
                         }
                         if (diff.type == .modified) {
@@ -3528,7 +3578,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         application?.job_id = job_id
                         
                         if !self.setJobListeners.keys.contains(job_id) {
-                            self.listenForJobInfo(job_id: job_id, country: country, include_metas: false)
+                            if self.getJobIfExists(job_id: job_id) == nil {
+                                self.listenForJobInfo(job_id: job_id, country: country, include_metas: false)
+                            }
                         }
                         
                         self.saveContext(self.constants.refresh_account)
@@ -3592,10 +3644,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                     
                     var global_tag = self.getGlobalTagIfExists(tag_title: tag)
+                    var old_last_update = global_tag?.last_update
                     if global_tag == nil {
                         global_tag = GlobalTag(context: self.context)
                         global_tag!.title = tag
                         global_tag!.country = country
+                        old_last_update = Int64(last_update!)
                         global_tag!.last_update = Int64(last_update!)
                     }
                 
@@ -3608,7 +3662,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             var t = self.getTagAssociateIfExists(tag_title: tag)
                             if t == nil {
                                 self.listenForSpecificTagData(tag_title: tag, country: country)
-                            }else if global_tag!.last_update < last_update! {
+                            }else if global_tag!.last_update < old_last_update! {
                                 self.listenForSpecificTagData(tag_title: tag, country: country)
                             }
                             

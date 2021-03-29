@@ -38,6 +38,7 @@ class CheckoutViewController: UIViewController, UICollectionViewDataSource,
     var amount = 0
     var is_job_private = false
     var pickedUsers: [String] = []
+    var picked_doc: Data? = nil
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -73,6 +74,7 @@ class CheckoutViewController: UIViewController, UICollectionViewDataSource,
         lng = locVC.lng
         amount = payVC.amount
         date = dateTimeVC.datePicker.date
+        picked_doc = titleVC.picked_doc
         
         let year: String = gett("yyyy", date)
         let month: String = gett("MM", date)//then MMM for month name in short eg. 'Jan' and MMMM for full name eg. 'January'
@@ -173,6 +175,8 @@ class CheckoutViewController: UIViewController, UICollectionViewDataSource,
         dateComponent.day = 1
         
         var end_day = Calendar.current.date(byAdding: dateComponent, to: date)!
+        let expiry_date = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: end_day)!
+        var expiry_date_mills = Int64((expiry_date.timeIntervalSince1970 * 1000.0).rounded())
         
         let pay: [String : Any] = [
             "amount" : amount,
@@ -269,6 +273,7 @@ class CheckoutViewController: UIViewController, UICollectionViewDataSource,
         var isJobOk = self.isJobDataOk()
         
         let docData: [String: Any] = [
+            "expiry_date" : expiry_date_mills,
             "job_title" : titleText,
             "job_details" : details,
             "job_worker_count" : number,
@@ -302,6 +307,25 @@ class CheckoutViewController: UIViewController, UICollectionViewDataSource,
             "upload_time" : upload_time,
             "selected_date" : selected_date
         ]
+        
+        if picked_doc != nil {
+            let storageRef = Storage.storage().reference()
+            let ref = storageRef.child(constants.users_data)
+                .child(uid)
+                .child(constants.job_document)
+                .child("\(key).pdf")
+            
+            let uploadTask = ref.putData(picked_doc!, metadata: nil) { (metadata, error) in
+              guard let metadata = metadata else {
+                // Uh-oh, an error occurred!
+                return
+              }
+              // Metadata contains file metadata such as size, content-type.
+              let size = metadata.size
+                print("set doc in db")
+                self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: self.picked_doc!, author_id: uid)
+            }
+        }
         
         
         print("starting upload ...")

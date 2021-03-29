@@ -22,6 +22,8 @@
 		430FB5AD260437320043D8EE /* PaymentInitiatorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FB5AC260437320043D8EE /* PaymentInitiatorViewController.swift */; };
 		430FB5B2260438430043D8EE /* PaymentJobTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FB5B1260438430043D8EE /* PaymentJobTableViewCell.swift */; };
 		430FB5B72604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 430FB5B62604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift */; };
+		4316726926117E3000C29AE5 /* Resource+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4316726726117E2F00C29AE5 /* Resource+CoreDataProperties.swift */; };
+		4316726A26117E3000C29AE5 /* Resource+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4316726826117E3000C29AE5 /* Resource+CoreDataClass.swift */; };
 		431961AF25EB29CA00FD6A4F /* ApplyForJobViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431961AE25EB29CA00FD6A4F /* ApplyForJobViewController.swift */; };
 		431961B725EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431961B625EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift */; };
 		431F82B1260DB3D60085B806 /* ViewPdfViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431F82B0260DB3D60085B806 /* ViewPdfViewController.swift */; };
@@ -188,6 +190,8 @@
 		430FB5AC260437320043D8EE /* PaymentInitiatorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentInitiatorViewController.swift; sourceTree = "<group>"; };
 		430FB5B1260438430043D8EE /* PaymentJobTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentJobTableViewCell.swift; sourceTree = "<group>"; };
 		430FB5B62604385F0043D8EE /* JobPaymentTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobPaymentTagCollectionViewCell.swift; sourceTree = "<group>"; };
+		4316726726117E2F00C29AE5 /* Resource+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Resource+CoreDataProperties.swift"; path = "/Users/bry/Documents/Work/ios_airwork/airwork/Models/Resource+CoreDataProperties.swift"; sourceTree = "<absolute>"; };
+		4316726826117E3000C29AE5 /* Resource+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Resource+CoreDataClass.swift"; path = "/Users/bry/Documents/Work/ios_airwork/airwork/Models/Resource+CoreDataClass.swift"; sourceTree = "<absolute>"; };
 		431961AE25EB29CA00FD6A4F /* ApplyForJobViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyForJobViewController.swift; sourceTree = "<group>"; };
 		431961B625EB305000FD6A4F /* ApplyForJobTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyForJobTagCollectionViewCell.swift; sourceTree = "<group>"; };
 		431F82B0260DB3D60085B806 /* ViewPdfViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewPdfViewController.swift; sourceTree = "<group>"; };
@@ -607,6 +611,8 @@
 		43B0E00B259DD3B700A94E09 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4316726826117E3000C29AE5 /* Resource+CoreDataClass.swift */,
+				4316726726117E2F00C29AE5 /* Resource+CoreDataProperties.swift */,
 				43B1473125E4B1F000FE02EA /* JobPayment+CoreDataClass.swift */,
 				43B1473225E4B1F000FE02EA /* JobPayment+CoreDataProperties.swift */,
 				43B1472025E4991400FE02EA /* AppliedJob+CoreDataClass.swift */,
@@ -1116,6 +1122,7 @@
 				430D10D125B2F38D0071B506 /* Rating+CoreDataProperties.swift in Sources */,
 				4389BB2F25C7A76900F0EDA7 /* ContactsViewController.swift in Sources */,
 				430FB5A5260436680043D8EE /* JobPaymentsViewController.swift in Sources */,
+				4316726A26117E3000C29AE5 /* Resource+CoreDataClass.swift in Sources */,
 				43B7602D25DA1E1900FFF716 /* PickUserViewController.swift in Sources */,
 				43B1470725E48EF700FE02EA /* AppData+CoreDataProperties.swift in Sources */,
 				434A5F4B25946B650061D2D2 /* airwork.xcdatamodeld in Sources */,
@@ -1125,6 +1132,7 @@
 				43B0E0F0259E351600A94E09 /* Qualification+CoreDataClass.swift in Sources */,
 				43B0E0F1259E351600A94E09 /* Account+CoreDataClass.swift in Sources */,
 				4389BB3725C7A7AF00F0EDA7 /* ContactTableViewCell.swift in Sources */,
+				4316726926117E3000C29AE5 /* Resource+CoreDataProperties.swift in Sources */,
 				43868290259B18910003288B /* SignUpNameViewController.swift in Sources */,
 				4361BB4125AAD83400242513 /* JobItemTableViewCell.swift in Sources */,
 				4320BCB125C416CA006FA9C7 /* TakeDownViewController.swift in Sources */,

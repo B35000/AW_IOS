@@ -13,6 +13,7 @@ class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDa
     @IBOutlet weak var skillsTableView: UITableView!
     @IBOutlet weak var openPdfButton: UIButton!
     @IBOutlet weak var openEditSkillButton: UIButton!
+    @IBOutlet weak var addButtonItem: UIBarButtonItem!
     
     var applicant_id = ""
     var qualifs = [Qualification]()
@@ -31,6 +32,14 @@ class SkillsViewController: UIViewController, UITableViewDelegate, UITableViewDa
         skillsTableView.dataSource = self
         
         NotificationCenter.default.addObserver(self, selector: #selector(didGetNotification(_:)), name: NSNotification.Name(rawValue: constants.refresh_account), object: nil)
+        
+        let my_id = Auth.auth().currentUser?.uid
+        
+        if my_id == applicant_id {
+            addButtonItem.isEnabled = true
+        }else{
+            addButtonItem.isEnabled = false
+        }
     }
     
     @objc func didGetNotification(_ notification: Notification){

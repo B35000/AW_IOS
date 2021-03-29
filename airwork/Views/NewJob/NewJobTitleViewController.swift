@@ -7,20 +7,30 @@
 
 import UIKit
 import MultilineTextField
+import PDFKit
+import UniformTypeIdentifiers
+import Firebase
+import CoreData
 
 let reuseIdentifier = "ImageCell";
 
-class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate,UIDocumentPickerDelegate, UIDocumentMenuDelegate {
     
     @IBOutlet weak var titleTextField: UITextField!
     @IBOutlet weak var detailsTextField: MultilineTextField!
     @IBOutlet weak var pickedImagesCollectionView: UICollectionView!
     @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var ErrorLabel: UILabel!
+    @IBOutlet weak var attachPdfLabel: UILabel!
+    @IBOutlet weak var pdfContainer: UIView!
+    var pdfView = PDFView()
+    @IBOutlet weak var removeDocButton: UIButton!
     
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var titleText = ""
     var pickedImages: [UIImage] = []
     var pickedUsers: [String] = []
+    let doc_max_size = (6 * (1024 * 1024))
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -141,6 +151,174 @@ class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, U
         pickedImages.remove(at: indexPath.row)
         pickedImagesCollectionView.reloadData()
      }
+    
+    @IBAction func whenAttachDocTapped(_ sender: UIButton) {
+        print("add tapped")
+        pickDoc()
+    }
+    
+    
+    @IBAction func whenAddTapped(_ sender: Any) {
+        
+    }
+    
+    
+    @IBAction func whenRemoveTapped(_ sender: Any) {
+        pdfView.document = nil
+        removeDocButton.isHidden = true
+        picked_doc = nil
+    }
+    
+    
+    func pickDoc(){
+        let types = UTType.types(tag: "pdf",tagClass: UTTagClass.filenameExtension,
+                                     conformingTo: nil)
+            let documentPickerController = UIDocumentPickerViewController(
+                    forOpeningContentTypes: types)
+            documentPickerController.delegate = self
+            self.present(documentPickerController, animated: true, completion: nil)
+    }
+    
+    var picked_doc: Data? = nil
+    
+    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        
+        if controller.allowsMultipleSelection {
+            print("WARNING: controller allows multiple file selection, but coordinate-read code here assumes only one file chosen")
+            // If this is intentional, you need to modify the code below to do coordinator.coordinate
+            // on MULTIPLE items, not just the first one
+            if urls.count > 0 { print("Ignoring all but the first chosen file") }
+        }
+        
+        let firstFileURL = urls[0]
+        let isSecuredURL = (firstFileURL.startAccessingSecurityScopedResource() == true)
+        
+        print("UIDocumentPickerViewController gave url = \(firstFileURL)")
+
+        // Status monitoring for the coordinate block's outcome
+        var blockSuccess = false
+        var outputFileURL: URL? = nil
+
+        // Execute (synchronously, inline) a block of code that will copy the chosen file
+        // using iOS-coordinated read to cooperate on access to a file we do not own:
+        let coordinator = NSFileCoordinator()
+        var error: NSError? = nil
+        coordinator.coordinate(readingItemAt: firstFileURL, options: [], error: &error) { (externalFileURL) -> Void in
+                
+            // WARNING: use 'externalFileURL in this block, NOT 'firstFileURL' even though they are usually the same.
+            // They can be different depending on coordinator .options [] specified!
+        
+            // Create file URL to temp copy of file we will create:
+            var tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            tempURL.appendPathComponent(externalFileURL.lastPathComponent)
+            print("Will attempt to copy file to tempURL = \(tempURL)")
+            
+            // Attempt copy
+            do {
+                // If file with same name exists remove it (replace file with new one)
+                if FileManager.default.fileExists(atPath: tempURL.path) {
+                    print("Deleting existing file at: \(tempURL.path) ")
+                    try FileManager.default.removeItem(atPath: tempURL.path)
+                }
+                
+                // Move file from app_id-Inbox to tmp/filename
+                print("Attempting move file to: \(tempURL.path) ")
+                try FileManager.default.copyItem(atPath: externalFileURL.path, toPath: tempURL.path)
+//                try FileManager.default.moveItem(atPath: externalFileURL.path, toPath: tempURL.path)
+                
+                blockSuccess = true
+                outputFileURL = tempURL
+            }
+            catch {
+                print("File operation error: " + error.localizedDescription)
+                blockSuccess = false
+            }
+            
+        }
+//        navigationController?.dismiss(animated: true, completion: nil)
+        
+        if error != nil {
+            print("NSFileCoordinator() generated error while preparing, and block was never executed")
+            return
+        }
+        if !blockSuccess {
+            print("Block executed but an error was encountered while performing file operations")
+            return
+        }
+        
+        print("Output URL : \(String(describing: outputFileURL))")
+        
+        if (isSecuredURL) {
+            firstFileURL.stopAccessingSecurityScopedResource()
+        }
+        
+        if let out = outputFileURL {
+            print("import result : \(out)")
+            do {
+                let resources = try out.resourceValues(forKeys:[.fileSizeKey])
+                let fileSize = resources.fileSize!
+                let path = String(describing: out.path)
+                
+                
+                if fileSize < Int64(doc_max_size){
+                    attachPdfLabel.text = "Document Attached!"
+                    picked_doc = try Data(contentsOf: out)
+                    attachPdfLabel.textColor = .label
+                    removeDocButton.isHidden = true
+                    
+                    let uid = Auth.auth().currentUser!.uid
+                    
+                     do {
+                        pdfView = PDFView()
+
+                        pdfView.translatesAutoresizingMaskIntoConstraints = false
+                        view.addSubview(pdfView)
+
+                        pdfView.leadingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.leadingAnchor).isActive = true
+                        pdfView.trailingAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.trailingAnchor).isActive = true
+                        pdfView.topAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.topAnchor).isActive = true
+                        pdfView.bottomAnchor.constraint(equalTo: pdfContainer.safeAreaLayoutGuide.bottomAnchor).isActive = true
+                        
+
+                        
+                        let d = PDFDocument(data: picked_doc!)
+                        pdfView.document = d
+                        removeDocButton.isHidden = false
+                     } catch {
+                         print("\(error.localizedDescription)")
+                     }
+                    
+                }else{
+                    attachPdfLabel.text = "The file size limit is 3.5Mb."
+                    attachPdfLabel.textColor = .systemRed
+                }
+    
+            } catch {
+                print("something went wrong: \(error.localizedDescription)")
+            }
+            
+        }
+        
+    }
+    
+    func getDocumentsDirectory() -> URL {
+        // find all possible documents directories for this user
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+
+        // just send back the first one, which ought to be the only one
+        return paths[0]
+    }
+    
+    public func documentMenu(_ documentMenu:UIDocumentMenuViewController, didPickDocumentPicker documentPicker: UIDocumentPickerViewController) {
+        documentPicker.delegate = self
+        present(documentPicker, animated: true, completion: nil)
+    }
+
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        print("view was cancelled")
+        dismiss(animated: true, completion: nil)
+    }
     
     
 }

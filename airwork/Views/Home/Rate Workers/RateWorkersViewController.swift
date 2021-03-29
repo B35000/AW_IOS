@@ -49,7 +49,6 @@ class RateWorkersViewController: UIViewController, UICollectionViewDelegate, UIC
 
         // Do any additional setup after loading the view.
         
-        
         loadJob()
         if amIAirworker(){
             loadJobOwner()
@@ -181,23 +180,38 @@ class RateWorkersViewController: UIViewController, UICollectionViewDelegate, UIC
             .child(owner_id)
             .child("avatar.jpg")
         
-        ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading image from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-              let im = UIImage(data: data!)
-                self.jobOwnerImage.image = im
-                
-                let image = self.jobOwnerImage!
-                image.layer.borderWidth = 1
-                image.layer.masksToBounds = false
-                image.layer.borderColor = UIColor.white.cgColor
-                image.layer.cornerRadius = image.frame.height/2
-                image.clipsToBounds = true
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            let im = UIImage(data: resource.data!)
+              self.jobOwnerImage.image = im
+              
+              let image = self.jobOwnerImage!
+              image.layer.borderWidth = 1
+              image.layer.masksToBounds = false
+              image.layer.borderColor = UIColor.white.cgColor
+              image.layer.cornerRadius = image.frame.height/2
+              image.clipsToBounds = true
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    let im = UIImage(data: data!)
+                      self.jobOwnerImage.image = im
+                      
+                      let image = self.jobOwnerImage!
+                      image.layer.borderWidth = 1
+                      image.layer.masksToBounds = false
+                      image.layer.borderColor = UIColor.white.cgColor
+                      image.layer.cornerRadius = image.frame.height/2
+                      image.clipsToBounds = true
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: owner_id)
+                }
+              }
+        }
         
         ownerNameLabel.text = owner_acc!.name!
         

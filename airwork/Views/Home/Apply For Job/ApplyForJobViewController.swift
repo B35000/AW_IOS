@@ -214,23 +214,39 @@ class ApplyForJobViewController: UIViewController, UICollectionViewDelegate, UIC
             .child(my_id)
             .child("avatar.jpg")
         
-        ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading image from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-              let im = UIImage(data: data!)
-                self.userIconImage.image = im
-                
-                let image = self.userIconImage!
-                image.layer.borderWidth = 1
-                image.layer.masksToBounds = false
-                image.layer.borderColor = UIColor.white.cgColor
-                image.layer.cornerRadius = image.frame.height/2
-                image.clipsToBounds = true
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            let im = UIImage(data: resource.data!)
+            self.userIconImage.image = im
+            
+            let image = self.userIconImage!
+            image.layer.borderWidth = 1
+            image.layer.masksToBounds = false
+            image.layer.borderColor = UIColor.white.cgColor
+            image.layer.cornerRadius = image.frame.height/2
+            image.clipsToBounds = true
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    let im = UIImage(data: data!)
+                    self.userIconImage.image = im
+                    
+                    let image = self.userIconImage!
+                    image.layer.borderWidth = 1
+                    image.layer.masksToBounds = false
+                    image.layer.borderColor = UIColor.white.cgColor
+                    image.layer.cornerRadius = image.frame.height/2
+                    image.clipsToBounds = true
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: my_id)
+                }
+              }
+        }
+        
         
         showFinishIfOk()
     }

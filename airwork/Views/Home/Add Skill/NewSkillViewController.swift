@@ -89,19 +89,28 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
                     .child(constants.qualification_images)
                     .child("\(image.name).jpg")
                 
-                ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
-                    if let error = error {
-                      // Uh-oh, an error occurred!
-                        print("loading image from cloud failed \(error.localizedDescription)")
-                    } else {
-                      // Data for "images/island.jpg" is returned
-                        print("loaded an image \(image.name)")
-                        let im = UIImage(data: data!)
-                        self.skill_images[im!] = image.name
-                        self.pickedImages.append(im!)
-                        self.pickedImagesCollectionView.reloadData()
-                    }
-                  }
+                if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+                    let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+                    let im = UIImage(data: resource.data!)
+                    self.skill_images[im!] = image.name
+                    self.pickedImages.append(im!)
+                    self.pickedImagesCollectionView.reloadData()
+                }else{
+                    ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                        if let error = error {
+                          // Uh-oh, an error occurred!
+                            print("loading image from cloud failed")
+                        } else {
+                          // Data for "images/island.jpg" is returned
+                            let im = UIImage(data: data!)
+                            self.skill_images[im!] = image.name
+                            self.pickedImages.append(im!)
+                            self.pickedImagesCollectionView.reloadData()
+                            
+                            self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: user_id)
+                        }
+                      }
+                }
             }
             
         }catch {
@@ -118,16 +127,25 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
             .child(constants.qualification_document)
             .child("\(edit_skill_id).pdf")
         
-        ref.getData(maxSize: Int64(doc_max_size)) { data, error in
-            if let error = error {
-              // Uh-oh, an error occurred!
-                print("loading doc from cloud failed")
-            } else {
-              // Data for "images/island.jpg" is returned
-                self.picked_doc = data
-                self.setDocOnView()
-            }
-          }
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            self.picked_doc = resource.data!
+            self.setDocOnView()
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading image from cloud failed")
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    self.picked_doc = data
+                    self.setDocOnView()
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: user_id)
+                }
+              }
+        }
+
     }
     
     func setDocOnView(){
@@ -176,6 +194,7 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
         ref.delete { (error) in
             if error != nil {
                 print(error.debugDescription)
+                self.constants.removeResource(data_id: ref.fullPath, context: self.context)
             }
         }
     }
@@ -467,7 +486,9 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
                 .child(constants.qualification_images)
                 .child("\(qual_im.name).jpg")
             
-            let uploadTask = img_ref.putData(image.resized(toWidth: 600.0)!.jpegData(compressionQuality: 100)!, metadata: nil) { (metadata, error) in
+            let im_data = image.resized(toWidth: 600.0)!.jpegData(compressionQuality: 100)
+            
+            let uploadTask = img_ref.putData(im_data!, metadata: nil) { (metadata, error) in
               guard let metadata = metadata else {
                 // Uh-oh, an error occurred!
                 return
@@ -475,6 +496,7 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
                 // Metadata contains file metadata such as size, content-type.
                 let size = metadata.size
                 print("written image in db")
+                self.constants.storeResource(data_id: img_ref.fullPath, context: self.context, data: im_data!, author_id: uid)
             }
             
             qual_images.set_images.append(qual_im)
@@ -512,6 +534,7 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
                   // Metadata contains file metadata such as size, content-type.
                   let size = metadata.size
                     print("set doc in db")
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: self.picked_doc!, author_id: uid)
                 }
             }
             
@@ -594,6 +617,7 @@ class NewSkillViewController: UIViewController, UICollectionViewDataSource, UICo
             if error != nil {
                 print(error.debugDescription)
             }
+            self.constants.removeResource(data_id: ref.fullPath, context: self.context)
         }
     }
     
