@@ -32,5 +32,8 @@ target 'airwork' do
   pod 'CryptoSwift', '~> 1.3.8'
   pod 'SwiftyRSA'
   pod 'GoogleMLKit/TextRecognition'
+  
+  pod 'Firebase/Auth'
+  pod 'GoogleSignIn'
 
 end

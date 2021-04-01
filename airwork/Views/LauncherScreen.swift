@@ -14,9 +14,8 @@ class LauncherScreen: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
-        
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if Auth.auth().currentUser != nil {
+            if Auth.auth().currentUser != nil{
               // User is signed in.
                 print("User is signed in")
                 
@@ -31,6 +30,12 @@ class LauncherScreen: UIViewController {
                 print("No user exists")
                 
                 let id = "SignUpNavigationController"
+//                do{
+//                    try Auth.auth().signOut()
+//                }catch{
+//
+//                }
+                
             
                 let SignUpIntroViewController = self.storyboard?.instantiateViewController(identifier: id) as? SignUpNavigationController
                 self.view.window?.rootViewController = SignUpIntroViewController

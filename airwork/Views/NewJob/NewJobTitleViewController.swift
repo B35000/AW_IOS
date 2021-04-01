@@ -282,6 +282,7 @@ class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, U
 
                         
                         let d = PDFDocument(data: picked_doc!)
+                        
                         pdfView.document = d
                         removeDocButton.isHidden = false
                      } catch {

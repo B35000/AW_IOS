@@ -88,14 +88,6 @@ class JobPaymentsViewController: UIViewController, UITableViewDelegate, UITableV
                     my_curr = my_application.application_pay_currency!
                 }
                 
-//                for applicant in job_applicants {
-//                    print("\(applicant.applicant_uid) application price---------------------- : \(applicant.application_pay_amount)")
-//
-//
-//                    if applicant.applicant_uid! == my_id {
-//
-//                    }
-//                }
                 
                 if my_price != 0 {
                     print("pay for job \(job.job_id!) :: \(my_price)")

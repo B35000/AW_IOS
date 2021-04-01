@@ -71,8 +71,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var switchAccountContainer: UIView!
     @IBOutlet weak var switchTitleLabel: UILabel!
     @IBOutlet weak var switchDetailsLabel: UILabel!
-    
     @IBOutlet weak var pendingRatingsContainer: UIView!
+    
+    @IBOutlet weak var createAccountContainer: UIView!
+    @IBOutlet weak var verifyIdentityContainer: UIView!
+    @IBOutlet weak var verifyEmailContainer: UIView!
+    @IBOutlet weak var addCertificateContainer: UIView!
+    
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -130,6 +135,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func setUpViews(){
+        removeFirebaseListeners()
         setMyAccountDataListeners()
         listenForPublicLocationData()
         
@@ -144,6 +150,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         pendingRatingsContainer.isHidden = true
         
+        
+        
         if amIAirworker(){
             self.title = "Airworker"
             switchTitleLabel.text = "Switch To Airwork"
@@ -157,8 +165,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             myAccountContainer.isHidden = false
             searchTagContainer.isHidden = true
             
-            getPendingJobs()
             
+            getUnpaidJobs()
             setUpJobMap()
             
         }else{
@@ -175,8 +183,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             searchTagContainer.isHidden = false
             
             pendingRatingsContainer.isHidden = true
+            getPendingJobs()
             
-            getUnratedJobs()
             
             if !myJobs.isEmpty{
                 openPendingRatingsButton.isHidden = false
@@ -193,12 +201,279 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             requestDeliveryView.addGestureRecognizer(new_job_tap)
             pickPersonView.addGestureRecognizer(pick_user_tap)
         }
-        
+        self.updateLinks()
     }
     
-    func getUnratedJobs(){
+    func updateViews(){
+        pendingRatingsContainer.isHidden = true
         
+        
+        if amIAirworker(){
+            self.title = "Airworker"
+            switchTitleLabel.text = "Switch To Airwork"
+            switchDetailsLabel.text = "Use the fastest job network to find and hire people on demand."
+            setAccountInfo()
+            
+            newJobCardView.isHidden = true
+            appliedJobsContainer.isHidden = false
+            jobsMapContainer.isHidden = false
+            quickJobsContainer.isHidden = true
+            myAccountContainer.isHidden = false
+            searchTagContainer.isHidden = true
+            
+            
+//            getUnpaidJobs()
+//            setUpJobMap()
+//            setUpAppliedJobs()
+            appliedJobsTableView.reloadData()
+            
+        }else{
+            self.title = "Home"
+            switchTitleLabel.text = "Switch To Airworker"
+            switchDetailsLabel.text = "Access the fastest job network to find job opportunities and be productive."
+            
+            
+            newJobCardView.isHidden = false
+            appliedJobsContainer.isHidden = true
+            jobsMapContainer.isHidden = true
+            quickJobsContainer.isHidden = false
+            myAccountContainer.isHidden = true
+            searchTagContainer.isHidden = false
+            
+            pendingRatingsContainer.isHidden = true
+//            getPendingJobs()
+//            setUpQuickJobs()
+//            setUpQuickTags()
+            
+            if !myJobs.isEmpty{
+                openPendingRatingsButton.isHidden = false
+                openNewJobsButton.isHidden = true
+            }else{
+                openPendingRatingsButton.isHidden = true
+                openNewJobsButton.isHidden = false
+            }
+            
+        }
+        
+        self.updateLinks()
     }
+    
+    func updateLinks(){
+        let uid = Auth.auth().currentUser?.uid
+        var account = self.getAccountIfExists(uid: uid!)
+        var app = self.getAppDataIfExists()
+        let time = Int(round(NSDate().timeIntervalSince1970 * 1000))
+        if app == nil {
+            app = AppData(context: self.context)
+            app?.global_tag_data_update_time = Int64(time)
+        }
+        if account != nil {
+            
+            self.verifyIdentityContainer.isHidden = true
+            if Auth.auth().currentUser!.isAnonymous {
+                self.addCertificateContainer.isHidden = true
+                self.verifyEmailContainer.isHidden = true
+                self.verifyIdentityContainer.isHidden = true
+                self.createAccountContainer.isHidden = false
+            }else{
+                self.createAccountContainer.isHidden = true
+                if amIAirworker(){
+                    self.addCertificateContainer.isHidden = false
+                    
+                    if (account?.scan_id_data != nil && account?.scan_id_data != ""){
+                        self.verifyIdentityContainer.isHidden = true
+                    }else{
+                        self.verifyIdentityContainer.isHidden = false
+                    }
+                }else{
+                    self.addCertificateContainer.isHidden = true
+                }
+                
+                if (self.isEmailVerified()){
+                    self.verifyEmailContainer.isHidden = true
+                }else{
+                    self.verifyEmailContainer.isHidden = false
+                }
+                
+               
+                
+            }
+        }
+    }
+    
+    
+    var my_jobs = [String]()
+    var my_job_ratings: [String: Double] = [String: Double]()
+    func getUnpaidJobs(){
+        let payment_objs = self.getJobPaymentsIfExists()
+        var paid_jobs: [String] = [String]()
+        my_job_ratings.removeAll()
+        
+        for item in payment_objs {
+            let payment_receipt = self.getPaymentReceipt(item.payment_receipt!)
+            
+            for job in payment_receipt.paid_jobs {
+                paid_jobs.append(job.job_id)
+            }
+        }
+        
+        var my_received_ratings_jobs: [String] = [String]()
+        var my_id = Auth.auth().currentUser!.uid
+        let my_ratings = self.getAccountRatings(my_id)
+        
+        for item in my_ratings {
+            print("loaded rating: \(item.rating_id)")
+        }
+        print("my ratings size:-------------- \(my_ratings.count)")
+        
+        for item in my_ratings {
+            if(!paid_jobs.contains(item.job_id!)){
+                my_received_ratings_jobs.append(item.job_id!)
+                my_job_ratings[item.job_id!] = item.rating
+            }
+        }
+        
+        if !my_received_ratings_jobs.isEmpty {
+            self.pendingRatingsContainer.isHidden = false
+        }else{
+            self.pendingRatingsContainer.isHidden = true
+        }
+    }
+    
+    func getPaymentReceipt(_ payment_receipt_json: String) -> PaymentReceipt{
+        let decoder = JSONDecoder()
+        
+        do{
+            let jsonData = payment_receipt_json.data(using: .utf8)!
+            let job_images =  try decoder.decode(PaymentReceipt.self, from: jsonData)
+            
+            return job_images
+        }catch{
+            print("error loading job images")
+        }
+        
+        return PaymentReceipt()
+    }
+    
+    struct PaymentReceipt: Codable{
+        var receipt_time = 0
+        var transaction_id = ""
+        var paymentResponse = PaymentResponse()
+        var method = PaymentMethod()
+        var paid_jobs: [encodable_job] = [encodable_job]()
+    }
+    
+    struct PaymentResponse: Codable{
+        var ResponseDescription = ""
+        var ResponseCode = ""
+        var MerchantRequestID = ""
+        
+        var CheckoutRequestID = ""
+        var ResultCode = ""
+        var ResultDesc = ""
+        var timeOfDay: String = ""
+        var datee: String = ""
+        var payingPhoneNumber: String = ""
+        var pushrefInAdminConsole: String = ""
+        var uploaderId: String = ""
+    }
+    
+    struct PaymentMethod: Codable{
+        var name = ""
+        var min_amount = 0
+        var min_amount_currency = ""
+    }
+    
+    struct encodable_job: Codable{
+        var job_title = ""
+        var job_details = ""
+        var job_worker_count = 0
+        var selected_tags: [jobtag] = []
+        var work_duration: String = ""
+        var start_date: myDate = myDate()
+        var end_date: myDate = myDate()
+        var time: Time = Time()
+
+        var is_asap = false
+        var location_set = myLocation()
+        var pay = Pay()
+        var country_name = ""
+        var country_name_code = ""
+        var language = ""
+        var upload_time = 0
+        var job_id = ""
+        var uploader = Uploader()
+    }
+    
+    struct jobtag: Codable{
+        var no_of_days = 0
+        var tag_class = ""
+        var tag_title = ""
+        var work_duration = ""
+    }
+    
+    struct jobtaglist: Codable{
+        var tags = [jobtag]()
+    }
+    
+    struct myDate: Codable{
+        var day = 0
+        var month = 0
+        var year = 0
+        var day_of_week = ""
+        var month_of_year = ""
+    }
+    
+    struct Time: Codable{
+        var hour = 0
+        var minute = 0
+        var am_pm = ""
+    }
+    
+    struct myLocation: Codable{
+        var latitude = 0.0
+        var longitude = 0.0
+        var description = ""
+    }
+    
+    struct Pay: Codable{
+        var amount = 0
+        var currency = ""
+    }
+    
+    struct Uploader: Codable{
+        var id = ""
+        var email = ""
+        var name = ""
+        var number = 0
+        var country_code = ""
+    }
+    
+    struct selected_workers: Codable{
+        var worker_list = [String]()
+    }
+    
+    func getJobPaymentsIfExists() -> [JobPayment] {
+        do{
+            let request = JobPayment.fetchRequest() as NSFetchRequest<JobPayment>
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    
+    
+    
+    
     
     func setAccountInfo(){
         var my_id = Auth.auth().currentUser!.uid
@@ -1092,6 +1367,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         appliedJobsTableView.delegate = self
         appliedJobsTableView.dataSource = self
+        appliedJobsTableView.reloadData()
     }
     
     func setUpQuickJobs(){
@@ -1931,10 +2207,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
-    struct selected_workers: Codable{
-        var worker_list = [String]()
-    }
-    
 
     
     // MARK: - Navigation
@@ -2064,6 +2336,47 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             complaintsReference = db.collection(constants.airworkers_ref).document(uid).collection(constants.complaints)
         }
         
+        var account = self.getAccountIfExists(uid: uid)
+        var app = self.getAppDataIfExists()
+        let time = Int(round(NSDate().timeIntervalSince1970 * 1000))
+        if app == nil {
+            app = AppData(context: self.context)
+            app?.global_tag_data_update_time = Int64(time)
+        }
+        if account != nil {
+            self.listenForGlobalTagData(country: account!.country!, last_update_time: Int(app!.global_tag_data_update_time))
+            
+            self.verifyIdentityContainer.isHidden = true
+            if Auth.auth().currentUser!.isAnonymous {
+                self.addCertificateContainer.isHidden = true
+                self.verifyEmailContainer.isHidden = true
+                self.verifyIdentityContainer.isHidden = true
+                self.createAccountContainer.isHidden = false
+            }else{
+                self.createAccountContainer.isHidden = true
+                if amIAirworker(){
+                    self.addCertificateContainer.isHidden = false
+                    
+                    if (account?.scan_id_data != nil && account?.scan_id_data != ""){
+                        self.verifyIdentityContainer.isHidden = true
+                    }else{
+                        self.verifyIdentityContainer.isHidden = false
+                    }
+                }else{
+                    self.addCertificateContainer.isHidden = true
+                }
+                
+                if (self.isEmailVerified()){
+                    self.verifyEmailContainer.isHidden = true
+                }else{
+                    self.verifyEmailContainer.isHidden = false
+                }
+                
+               
+                
+            }
+        }
+        
         var accountRef = accountReference
             .addSnapshotListener{ documentSnapshot, error in
                 //if fetching the doc failed
@@ -2165,7 +2478,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 account?.phone?.country_number_code = country_number_code
                 account?.phone?.digit_number = Int64(digit_number)
                 
-                self.saveContext(self.constants.refresh_account)
+//                self.saveContext(self.constants.refresh_account)
             }
         setAccountListners.append(accountPhoneRef)
         
@@ -2195,13 +2508,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                     if (diff.type == .modified) {
 //                        print("Modified item")
+                        self.saveContext(self.constants.refresh_account)
                     }
                     if (diff.type == .removed) {
 //                        print("Removed item")
                         self.context.delete(contact!)
                     }
                     
-                    self.saveContext(self.constants.refresh_account)
+//                    self.saveContext(self.constants.refresh_account)
                 }
 
                 
@@ -2243,13 +2557,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     rating?.rated_user_id = uid
                     rating?.rating_id = rating_id
                     
-                    self.saveContext(self.constants.refresh_account)
+                    
                     
                     if (diff.type == .added) {
 //                        print("New item")
+                        if self.getRatingIfExists(rating_id: rating_id) == nil{
+                            self.saveContext(self.constants.refresh_account)
+                        }
                     }
                     if (diff.type == .modified) {
 //                        print("Modified item")
+                        self.saveContext(self.constants.refresh_account)
                     }
                     if (diff.type == .removed) {
 //                        print("Removed item")
@@ -2318,16 +2636,26 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         uploaded_job?.applicant_set_pay = applicant_set_pay
                         
                         
-                        self.saveContext(self.constants.refresh_account)
                         
                         if (diff.type == .added) {
     //                        print("New item")
-                            if !self.setJobListeners.keys.contains(job_id) {
-                                self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
+                            
+                            let app_job = self.getJobIfExists(job_id: job_id)
+                            if app_job != nil {
+                                if self.isJobAFutureJob(job: app_job!) {
+                                    if !self.setJobListeners.keys.contains(job_id) {
+                                        self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
+                                    }
+                                }
+                            }else{
+                                if !self.setJobListeners.keys.contains(job_id) {
+                                    self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
+                                }
                             }
                         }
                         if (diff.type == .modified) {
     //                        print("Modified item")
+                            self.saveContext(self.constants.refresh_account)
                         }
                         if (diff.type == .removed) {
     //                        print("Removed item")
@@ -2381,9 +2709,21 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         
                         if (diff.type == .added) {
     //                        print("New item")
-                            if !self.setJobListeners.keys.contains(job_id) {
-                                self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                            
+                            let app_job = self.getJobIfExists(job_id: job_id)
+                            if app_job != nil {
+                                if self.isJobAFutureJob(job: app_job!) {
+                                    if !self.setJobListeners.keys.contains(job_id) {
+                                        self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                                    }
+                                }
+                            }else{
+                                if !self.setJobListeners.keys.contains(job_id) {
+                                    self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                                }
                             }
+                            
+                            
                         }
                         if (diff.type == .modified) {
     //                        print("Modified item")
@@ -2394,9 +2734,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             self.context.delete(job_application!)
                         }
                         
-                        self.saveContext(self.constants.refresh_account)
+                        
                         
                     }
+                    self.saveContext(self.constants.refresh_account)
                 }
             setAccountListners.append(accountAppliedJobsRef)
             
@@ -2427,8 +2768,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         job_payment?.payment_id = payment_id
                         
                         
-                        self.saveContext(self.constants.refresh_account)
+                        
                     }
+                    self.saveContext(self.constants.refresh_account)
                 }
             
             setAccountListners.append(accountPaymentReceipts)
@@ -2463,7 +2805,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     notification?.notif_id = notif_id
                     notification?.seen = Int64(seen ?? 0)
                     
-                    self.saveContext(self.constants.refresh_account)
+//                    self.saveContext(self.constants.refresh_account)
                     
                     if (diff.type == .added) {
 //                        print("New item")
@@ -2477,7 +2819,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 
 //                print("loaded \(snapshot.documentChanges.count) notifications")
-                
+                self.saveContext(self.constants.refresh_account)
             }
         
         setAccountListners.append(accountNotificationsRef)
@@ -2507,7 +2849,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     complaint?.reported_id = reported_id
                     complaint?.timestamp = Int64(timestamp)
                     
-                    self.saveContext(self.constants.refresh_account)
+                    
                     
                     if (diff.type == .added) {
 //                        print("New item")
@@ -2521,7 +2863,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 
 //                print("loaded \(snapshot.documentChanges.count) complaints")
-                
+                self.saveContext(self.constants.refresh_account)
             }
         
         setAccountListners.append(accountComplaintsRef)
@@ -2539,7 +2881,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         newJobDataListener = db.collection(constants.jobs_ref)
             .document(country)
             .collection(constants.country_jobs)
-            .order(by: "upload_time", descending: true)
+            
             .whereField("expiry_date", isGreaterThan: now)
             .addSnapshotListener{ querySnapshot, error in
                 //if fetching the doc failed
@@ -2721,6 +3063,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 
             }
+        
+    }
+    
+    func isEmailVerified() -> Bool{
+        let me = Auth.auth().currentUser!
+        me.reload { (e: Error?) in
+            
+        }
+        
+        return me.isEmailVerified
         
     }
     
@@ -2963,7 +3315,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     rating?.rated_user_id = user_id
                     rating?.rating_id = rating_id
                     
-                    self.saveContext(self.constants.refresh_account)
+                    
                     
                     if (diff.type == .added) {
 //                        print("New item")
@@ -2975,7 +3327,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //                        print("Removed item")
                     }
                 }
-                
+                self.saveContext(self.constants.refresh_account)
 //                print("loaded \(snapshot.documentChanges.count) contact ratings")
                 
             }
@@ -3157,6 +3509,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     var uploader_acc = self.getAccountIfExists(uid: uploader_id)
                     if uploader_acc == nil {
                         if self.getAccountIfExists(uid: uploader_id) == nil {
+                            print("listening into account: \(uploader_id)")
                             self.listenForAnotherUserInfo(user_id: uploader_id)
                         }
                     }
@@ -3195,7 +3548,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         view?.view_time = Int64(view_time)
                         view?.viewer_id = viewer_id
                         
-                        self.saveContext(self.constants.refresh_job)
+                        
                         
                         if (diff.type == .added) {
     //                        print("New item")
@@ -3207,7 +3560,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     //                        print("Removed item")
                         }
                     }
-                    
+                    self.saveContext(self.constants.refresh_job)
     //                print("loaded \(snapshot.documentChanges.count) views for job: \(job_id)")
                     
                 }
@@ -3254,6 +3607,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             if self.setOtherAccountListeners[applicant_uid] == nil {
                                 print("adding listener for user: \(applicant_uid) from job applicants ref")
                                 if self.getAccountIfExists(uid: applicant_uid) == nil {
+                                    print("listening into account: \(applicant_uid)")
                                     self.listenForAnotherUserInfo(user_id: applicant_uid)
                                 }
                             }
@@ -3266,9 +3620,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             self.context.delete(applicant!)
                         }
                         
-                        self.saveContext(self.constants.refresh_job)
+                        
                     }
-                    
+                    self.saveContext(self.constants.refresh_job)
     //                print("loaded \(snapshot.documentChanges.count) applicants for job: \(job_id)")
                     
                 }
@@ -3444,9 +3798,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         self.context.delete(rating!)
                     }
                     
-                    self.saveContext(self.constants.refresh_account)
+                    
                 }
-                
+                self.saveContext(self.constants.refresh_account)
 //                print("loaded \(snapshot.documentChanges.count) ratings for another user account")
                 
             }
@@ -3478,7 +3832,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     complaint?.reported_id = reported_id
                     complaint?.timestamp = Int64(timestamp)
                     
-                    self.saveContext(self.constants.refresh_account)
+                    
                     
                     if (diff.type == .added) {
 //                        print("New item")
@@ -3492,7 +3846,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     
                     
                 }
-                
+                self.saveContext(self.constants.refresh_account)
 //                print("loaded \(snapshot.documentChanges.count) complaints for another user account")
                 
             }
@@ -3531,7 +3885,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         qualification?.images = images
                         
                         
-                        self.saveContext(self.constants.refresh_account)
+                        
                         
                         if (diff.type == .added) {
     //                        print("New item")
@@ -3543,7 +3897,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     //                        print("Removed item")
                         }
                     }
-                    
+                    self.saveContext(self.constants.refresh_account)
     //                print("loaded \(snapshot.documentChanges.count) qualifications for another user account")
                     
                 }
@@ -3583,7 +3937,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             }
                         }
                         
-                        self.saveContext(self.constants.refresh_account)
+                       
                         
                         
                         if (diff.type == .added) {
@@ -3596,7 +3950,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     //                        print("Removed item")
                         }
                     }
-                    
+                    self.saveContext(self.constants.refresh_account)
     //                print("loaded \(snapshot.documentChanges.count) qualifications for another user account")
                     }
             
@@ -3675,8 +4029,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //                        print("Removed item")
                     }
                     
-                    self.saveContext(self.constants.refresh_app)
+                    
                 }
+                
+                self.saveContext(self.constants.refresh_app)
             }
         
         setPublicDataListeners.append(globalTagRef)
@@ -3743,7 +4099,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //                    if !g_tag_associates.contains(t!){
                     global_tag?.addToTag_associates(t)
                     
-                    self.saveContext(self.constants.refresh_app)
+                    
                     
                     if (diff.type == .added) {
 //                        print("New item")
@@ -3755,7 +4111,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //                        print("Removed item")
                     }
                 }
-                
+                self.saveContext(self.constants.refresh_app)
 //                print("tag associates for \(tag_title) : \(global_tag!.tag_associates!.count)")
                 
             }
@@ -3845,8 +4201,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                         self.context.delete(f_word!)
                     }
                     
-                    self.saveContext(self.constants.refresh_app)
+                    
                 }
+                self.saveContext(self.constants.refresh_app)
             }
     }
     
@@ -3903,6 +4260,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if notification_name == constants.refresh_account{
                 self.updateAppliedJobs()
+                self.updateViews()
             }
         }catch{
             

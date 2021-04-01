@@ -16,7 +16,7 @@ class SignUpPhoneViewController: UIViewController {
     
     @IBOutlet weak var errorLabel: UILabel!
     let db = Firestore.firestore()
-    
+    var constants = Constants.init()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -82,18 +82,121 @@ class SignUpPhoneViewController: UIViewController {
                 print("Internet Connection Available!")
                 
                 self.showLoadingScreen()
-                Auth.auth().createUser(withEmail: typedEmail, password: typedPassword)
-                { (result, err) in
-                    if err != nil {
-                        self.showError("Something went wrong. Retry after a few moments.")
+                
+                if ((Auth.auth().currentUser?.isAnonymous) != nil){
+                    let cred = EmailAuthProvider.credential(withEmail: typedEmail, password: typedPassword)
+                    Auth.auth().currentUser?.link(with: cred, completion: { [self] (result, error) in
+                        if error != nil {
+                            self.showError("That didn't work. Retry after a few moments")
+                            self.hideLoadingScreen()
+                        }else{
+                            let time = round(NSDate().timeIntervalSince1970 * 1000)
+                            let uid = result!.user.uid
+                            let user_ref = db.collection(constants.users_ref)
+                                .document(uid)
+                            let airworker_ref = db.collection(constants.airworkers_ref)
+                                .document(uid)
+                            let user_phone = db.collection(constants.users_ref)
+                                .document(uid).collection(constants.meta_data).document(constants.phone)
+                            
+                            let airworker_phone = db.collection(constants.airworkers_ref)
+                                .document(uid).collection(constants.meta_data).document(constants.phone)
+                            
+                            let refData: [String: Any] = [
+                                "email" : typedEmail,
+                                "name" : typedName,
+                                "uid" : uid,
+                                "gender" : gender,
+                                "sign_up_time" : time,
+                                "country" : country,
+                                "language" : "en",
+                                "user_type" : "user",
+                                "is_user_clear" : true
+                            ]
+                            
+                            let phoneData: [String: Any] = [
+                                "digit_number" : typedNumber,
+                                "country_number_code" : phoneCode,
+                                "country_name" : country,
+                                "country_name_code" : countryCode,
+                                "country_currency" : "KES"
+                            ]
+                            
+                            airworker_ref.setData(refData)
+                            airworker_phone.setData(phoneData)
+                            user_ref.setData(refData){ err in
+                                if let err = err {
+                                    print("Error writing document: \(err)")
+                                } else {
+                                    print("Document successfully written!")
+                                    NotificationCenter.default.post(name: NSNotification.Name(constants.refresh_app), object: "listener")
+                                    self.hideLoadingScreen()
+                                    dismiss(animated: true, completion: nil)
+                                }
+                            }
+                            user_phone.setData(phoneData)
+                        }
+                    })
+                }else{
+                    Auth.auth().createUser(withEmail: typedEmail, password: typedPassword)
+                    { [self] (result, err) in
+                        if err != nil {
+                            self.showError("Something went wrong. Retry after a few moments.")
+                            self.hideLoadingScreen()
+                        }
+                        else {
+                           //Transition to the home screen
+                            let time = round(NSDate().timeIntervalSince1970 * 1000)
+                            let uid = result!.user.uid
+                            let user_ref = db.collection(constants.users_ref)
+                                .document(uid)
+                            let airworker_ref = db.collection(constants.airworkers_ref)
+                                .document(uid)
+                            let user_phone = db.collection(constants.users_ref)
+                                .document(uid).collection(constants.meta_data).document(constants.phone)
+                            
+                            let airworker_phone = db.collection(constants.airworkers_ref)
+                                .document(uid).collection(constants.meta_data).document(constants.phone)
+                            
+                            let refData: [String: Any] = [
+                                "email" : typedEmail,
+                                "name" : typedName,
+                                "uid" : uid,
+                                "gender" : gender,
+                                "sign_up_time" : time,
+                                "country" : country,
+                                "language" : "en",
+                                "user_type" : "user",
+                                "is_user_clear" : true
+                            ]
+                            
+                            let phoneData: [String: Any] = [
+                                "digit_number" : typedNumber,
+                                "country_number_code" : phoneCode,
+                                "country_name" : country,
+                                "country_name_code" : countryCode,
+                                "country_currency" : "KES"
+                            ]
+                            
+                            airworker_ref.setData(refData)
+                            airworker_phone.setData(phoneData)
+                            user_ref.setData(refData){ err in
+                                if let err = err {
+                                    print("Error writing document: \(err)")
+                                } else {
+                                    print("Document successfully written!")
+                                    NotificationCenter.default.post(name: NSNotification.Name(constants.refresh_app), object: "listener")
+                                    self.hideLoadingScreen()
+                                    self.transitionToHome()
+                                }
+                            }
+                            user_phone.setData(phoneData)
+                        }
+                        
                     }
-                    else {
-                       //Transition to the home screen
-                        let time = round(NSDate().timeIntervalSince1970 * 1000)
-                        self.transitionToHome()
-                    }
-                    self.hideLoadingScreen()
                 }
+                
+                
                 
             }else{
                 print("Internet Connection not Available!")
@@ -102,6 +205,11 @@ class SignUpPhoneViewController: UIViewController {
         }
         
         
+    }
+    
+    func setDataInDB(uid: String){
+
+            
     }
     
     
@@ -113,6 +221,7 @@ class SignUpPhoneViewController: UIViewController {
     func hideErrorLabel(){
         errorLabel.isHidden = true
     }
+    
     
     
     var child = SpinnerViewController()

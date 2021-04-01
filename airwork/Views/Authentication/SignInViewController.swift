@@ -7,6 +7,7 @@
 
 import UIKit
 import Firebase
+import GoogleSignIn
 
 class SignInViewController: UIViewController {
     @IBOutlet weak var emailInputField: UITextField!
@@ -18,6 +19,15 @@ class SignInViewController: UIViewController {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
+        GIDSignIn.sharedInstance()?.presentingViewController = self
+//        GIDSignIn.sharedInstance().signIn()
+        NotificationCenter.default.addObserver(self, selector: #selector(didGetNotification(_:)), name: NSNotification.Name(rawValue: "signed-in"), object: nil)
+        
+    }
+    
+    @objc func didGetNotification(_ notification: Notification){
+        print("transitioning to home")
+        self.transitionToHome()
     }
     
 

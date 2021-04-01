@@ -7,10 +7,14 @@
 
 import UIKit
 import SafariServices
+import Firebase
+import CoreData
 
 class SignUpIntroViewController: UIViewController {
     @IBOutlet weak var whenLicensePressed: UILabel!
-
+    @IBOutlet weak var skipButton: UIButton!
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,6 +23,13 @@ class SignUpIntroViewController: UIViewController {
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(SignUpIntroViewController.whenEulaTapped))
         whenLicensePressed.addGestureRecognizer(tap)
+        
+        if Auth.auth().currentUser != nil {
+            if (Auth.auth().currentUser!.isAnonymous) {
+                //anon, so hide skip btn
+                skipButton.isHidden = true
+            }
+        }
     }
     
 
@@ -32,32 +43,40 @@ class SignUpIntroViewController: UIViewController {
     }
     */
     @IBAction func whenSkipPressed(_ sender: Any) {
-//        self.showSpinner(onView: self.view)
-//
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-//            self.removeSpinner()
-//        }
+        self.showLoadingScreen()
         
-//        createSpinnerView()
-    }
-    
-    func createSpinnerView() {
-        let child = SpinnerViewController()
-
-        // add the spinner view controller
-        addChild(child)
-        child.view.frame = view.frame
-        view.addSubview(child.view)
-        child.didMove(toParent: self)
-
-        // wait two seconds to simulate some work happening
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            // then remove the spinner view controller
-            child.willMove(toParent: nil)
-            child.view.removeFromSuperview()
-            child.removeFromParent()
+        Auth.auth().signInAnonymously { (result, error) in
+            if error != nil {
+                self.hideLoadingScreen()
+            }else{
+                let uid = result!.user.uid
+                let time = round(NSDate().timeIntervalSince1970 * 1000)
+                let account = Account(context: self.context)
+                account.email = "unknown_email"
+                account.country = "Kenya"
+                account.email_verification_obj = ""
+                account.gender = "Female"
+                account.language = "en"
+                account.name = "Anon"
+                account.phone_verification_obj = ""
+                account.sign_up_time = Int64(time)
+                account.user_type = "user"
+                account.uid = uid
+                
+                do{
+                    try self.context.save()
+                    self.hideLoadingScreen()
+                    self.transitionToHome()
+                }catch{
+                    
+                }
+                
+                
+                
+            }
         }
     }
+
     
     
     @objc func whenEulaTapped(sender:UITapGestureRecognizer) {
@@ -72,34 +91,39 @@ class SignUpIntroViewController: UIViewController {
         }
     }
     
+    func transitionToHome(){
+        let id = "HomeTabBarController"
     
-    
-    
-    
-}
-
-var vSpinner : UIView?
-
-extension UIViewController {
-    func showSpinner(onView : UIView) {
-        let spinnerView = UIView.init(frame: onView.bounds)
-        spinnerView.backgroundColor = UIColor.init(red: 0.8, green: 0.8, blue: 0.8, alpha: 0.5)
-        let ai = UIActivityIndicatorView.init(style: .large)
-        ai.startAnimating()
-        ai.center = spinnerView.center
-        
-        DispatchQueue.main.async {
-            spinnerView.addSubview(ai)
-            onView.addSubview(spinnerView)
-        }
-        
-        vSpinner = spinnerView
+        let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController
+        view.window?.rootViewController = homeViewController
+        view.window?.makeKeyAndVisible()
     }
     
-    func removeSpinner() {
-        DispatchQueue.main.async {
-            vSpinner?.removeFromSuperview()
-            vSpinner = nil
+    
+    
+    var child = SpinnerViewController()
+    var isShowingSpinner = false
+    func showLoadingScreen() {
+        if !isShowingSpinner {
+            child = SpinnerViewController()
+            // add the spinner view controller
+            addChild(child)
+            child.view.frame = view.frame
+            view.addSubview(child.view)
+            child.didMove(toParent: self)
+            isShowingSpinner = true
         }
     }
+    
+    func hideLoadingScreen(){
+        if isShowingSpinner {
+            child.willMove(toParent: nil)
+            child.view.removeFromSuperview()
+            child.removeFromParent()
+            isShowingSpinner = false
+        }
+    }
+    
+    
+    
 }

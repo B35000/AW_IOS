@@ -251,7 +251,7 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
             let items = try context.fetch(request)
             
             if(!items.isEmpty){
-                return items
+                return filterRatings(ratings: items)
             }
             
         }catch {
@@ -259,6 +259,84 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
         }
         
         return []
+    }
+    
+    func filterRatings(ratings: [Rating]) -> [Rating] {
+        var filtered_items = [Rating]()
+        var my_id = Auth.auth().currentUser!.uid
+
+        for item in ratings {
+            print("filtering rating:-------------> \(item.rating_id!)")
+            let job_id = item.job_id
+            let job = self.getJobIfExists(job_id: job_id!)
+
+            var req_id_format = "\(job!.uploader_id!)\(job_id!)"
+            if amIAirworker(){
+                var unreq_id_format = "\(job_id!)"
+                if (item.rating_id! != unreq_id_format && job!.uploader_id! != my_id){
+                    filtered_items.append(item)
+                }
+            }else{
+                if item.rating_id! == req_id_format{
+                    filtered_items.append(item)
+                }
+            }
+        }
+
+        return filtered_items
+    }
+    
+    func getJobIfExists(job_id: String) -> Job? {
+        do{
+            let request = Job.fetchRequest() as NSFetchRequest<Job>
+            let predic = NSPredicate(format: "job_id == %@", job_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    func amIAirworker() -> Bool{
+        let app_data = self.getAppDataIfExists()
+        
+        if app_data!.is_airworker {
+            return true
+        }
+        
+        return false
+    }
+    
+    func getAppDataIfExists() -> AppData? {
+        do{
+            let request = AppData.fetchRequest() as NSFetchRequest<AppData>
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }else{
+                let new_app_data = AppData(context: self.context)
+                do{
+                    try context.save()
+                }catch{
+                    
+                }
+                return new_app_data
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
     }
     
 }
