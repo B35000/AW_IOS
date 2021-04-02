@@ -126,6 +126,7 @@
 		43B7602D25DA1E1900FFF716 /* PickUserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B7602C25DA1E1900FFF716 /* PickUserViewController.swift */; };
 		43B7603525DA23A900FFF716 /* PickedUserCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B7603425DA23A900FFF716 /* PickedUserCollectionViewCell.swift */; };
 		43B7603A25DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B7603925DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift */; };
+		43BA4D9F2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BA4D9E2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift */; };
 		43BB7DE62607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BB7DE52607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift */; };
 		43C73AA925E35E3D00384F08 /* QuickJobViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C73AA825E35E3D00384F08 /* QuickJobViewController.swift */; };
 		43C9C38025A20D8800F26F6C /* NewJobTagsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C9C37F25A20D8800F26F6C /* NewJobTagsViewController.swift */; };
@@ -300,6 +301,7 @@
 		43B7602C25DA1E1900FFF716 /* PickUserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickUserViewController.swift; sourceTree = "<group>"; };
 		43B7603425DA23A900FFF716 /* PickedUserCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickedUserCollectionViewCell.swift; sourceTree = "<group>"; };
 		43B7603925DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickedUserTagCollectionViewCell.swift; sourceTree = "<group>"; };
+		43BA4D9E2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickUserCollectionViewCell.swift; sourceTree = "<group>"; };
 		43BB7DE52607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickTagJobCollectionViewCell.swift; sourceTree = "<group>"; };
 		43C73AA825E35E3D00384F08 /* QuickJobViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickJobViewController.swift; sourceTree = "<group>"; };
 		43C9C37F25A20D8800F26F6C /* NewJobTagsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewJobTagsViewController.swift; sourceTree = "<group>"; };
@@ -742,6 +744,7 @@
 				43A6EDB325F9CA1D003C0729 /* NewJobItemCollectionViewCell.swift */,
 				43D138E925FBC40400A22C08 /* NewJobTagCollectionViewCell.swift */,
 				43BB7DE52607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift */,
+				43BA4D9E2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift */,
 			);
 			path = HomePage;
 			sourceTree = "<group>";
@@ -1139,6 +1142,7 @@
 				43B0E0F2259E351600A94E09 /* Qualification+CoreDataProperties.swift in Sources */,
 				43E0D12D25B822F3009C7F96 /* JobHistoryViewController.swift in Sources */,
 				4330BBD525A19C8B001056A6 /* NumOfWorkersViewController.swift in Sources */,
+				43BA4D9F2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift in Sources */,
 				43C9C3AF25A2239600F26F6C /* XcCollectionViewController.swift in Sources */,
 				43C9C38525A20E1100F26F6C /* DateTimeViewController.swift in Sources */,
 				43649D3525F9A27000AA078B /* ViewJobApplicantImageCollectionViewCell.swift in Sources */,

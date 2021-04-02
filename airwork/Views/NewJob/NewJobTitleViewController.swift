@@ -14,7 +14,7 @@ import CoreData
 
 let reuseIdentifier = "ImageCell";
 
-class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate,UIDocumentPickerDelegate, UIDocumentMenuDelegate {
+class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate,UIDocumentPickerDelegate, UIDocumentMenuDelegate, UITextFieldDelegate {
     
     @IBOutlet weak var titleTextField: UITextField!
     @IBOutlet weak var detailsTextField: MultilineTextField!
@@ -39,9 +39,13 @@ class NewJobTitleViewController: UIViewController, UICollectionViewDataSource, U
         
 //        detailsTextView.textColor = UIColor.lightGray
 //        detailsTextView.placeholderColor = UIColor.lightGray
-                
+        self.titleTextField.delegate = self
     }
     
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        self.view.endEditing(true)
+        return false
+    }
 
     
     // MARK: - Navigation

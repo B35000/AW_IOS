@@ -60,6 +60,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     var jobsViews = [String]()
     var jobApplicantsUids = [String]()
     var pickedApplicantsUids = [String]()
+    var selectedUsers = [String]()
     
     let MAX_DISTANCE_TRHESHOLD = 7000.0
     
@@ -84,6 +85,9 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         setUpViews()
     }
     
+    struct selected_users_class: Codable{
+        var selected_users_for_job = [String]()
+    }
     
     func setUpViews(){
         job = self.getJobIfExists(job_id: job_id)
@@ -106,6 +110,25 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         let applicant_objs = self.getJobApplicantsIfExists(job_id: job_id)
         for item in applicant_objs {
             jobApplicantsUids.append(item.applicant_uid!)
+        }
+        
+        var selected_users_json = job!.selected_workers
+        let decoder = JSONDecoder()
+        
+        do{
+            var selected_users = selected_users_class()
+            
+            if selected_users_json != nil && selected_users_json != "" {
+                let jsonData = selected_users_json!.data(using: .utf8)!
+                selected_users = try decoder.decode(selected_users_class.self ,from: jsonData)
+            }
+            
+            if !selected_users.selected_users_for_job.isEmpty {
+                print("job is private, loaded---------------------- \(selected_users.selected_users_for_job)")
+                selectedUsers.append(contentsOf: selected_users.selected_users_for_job)
+            }
+        }catch{
+            print("\(error.localizedDescription)")
         }
         
         
@@ -600,6 +623,8 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         }else if jobsViews.contains(user_id) {
 //            color = UIColor(red: 40, green: 40, blue: 40, alpha: 0.3)
             color = UIColor(named: "JobSeen")!
+        }else if selectedUsers.contains(user_id){
+            color = UIColor(named: "JobApplied")!
         }
         
         return color
@@ -635,7 +660,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         polyline_list.append(polyline)
         self.addedLines[user] = polyline_list
         
-        if jobsViews.contains(user) || jobApplicantsUids.contains(user){
+        if jobsViews.contains(user) || jobApplicantsUids.contains(user) || selectedUsers.contains(user){
             let coordinate₀ = CLLocation(latitude: start_lat, longitude: start_long)
             let coordinate₁ = CLLocation(latitude: end_lat, longitude: end_long)
             

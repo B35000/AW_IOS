@@ -19,5 +19,7 @@ class QuickJobCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var expandedTitleLabel: UILabel!
     @IBOutlet weak var fullImage: UIImageView!
     
+    @IBOutlet weak var compactPriceLabel: UILabel!
+    @IBOutlet weak var expandedPriceLabel: UILabel!
     
 }

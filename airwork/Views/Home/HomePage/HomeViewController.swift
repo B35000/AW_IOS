@@ -14,26 +14,32 @@ import CoreLocation
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, GMSMapViewDelegate, CLLocationManagerDelegate,  UICollectionViewDelegate, UICollectionViewDataSource, UITextFieldDelegate{
     @IBOutlet weak var newJobCardView: UIView!
-//    @IBOutlet weak var notificationsIcon: UIImageView!
-//    @IBOutlet weak var settingsIcon: UIImageView!
+    @IBOutlet weak var homePageScrollView: UIScrollView!
+    
     @IBOutlet weak var openPendingRatingsButton: UIButton!
     @IBOutlet weak var openNewJobsButton: UIButton!
     @IBOutlet weak var requestDeliveryView: UIView!
     @IBOutlet weak var pickPersonView: UIView!
     @IBOutlet weak var pickPersonButton: UIButton!
     
-    //part for airworkers
+    //part for interacting with map
     @IBOutlet weak var appliedJobsTableView: UITableView!
     @IBOutlet weak var appliedJobsContainer: UIView!
     @IBOutlet weak var jobsMapContainer: UIView!
     @IBOutlet weak var mapView: GMSMapView!
     @IBOutlet weak var jobsCollectionView: UICollectionView!
     @IBOutlet weak var newJobIconsContainer: UIView!
+    @IBOutlet weak var pickUserContainer: UIView!
+    @IBOutlet weak var publicUsersCollection: UICollectionView!
+    @IBOutlet weak var sendQuickJobContainer: CardView!
+    @IBOutlet weak var sendCustomJobContainer: CardView!
     
-    //part for airwork users
+    
+    //parts for airwork user
     @IBOutlet weak var quickJobsContainer: UIView!
     @IBOutlet weak var quickJobsTableView: UITableView!
     @IBOutlet weak var quickJobButton: UIButton!
+    
     
     //extras
     @IBOutlet weak var openQuickJobDetailsButton: UIButton!
@@ -160,7 +166,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             newJobCardView.isHidden = true
             appliedJobsContainer.isHidden = false
-            jobsMapContainer.isHidden = false
+//            jobsMapContainer.isHidden = false
+            pickUserContainer.isHidden = true
             quickJobsContainer.isHidden = true
             myAccountContainer.isHidden = false
             searchTagContainer.isHidden = true
@@ -177,7 +184,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             newJobCardView.isHidden = false
             appliedJobsContainer.isHidden = true
-            jobsMapContainer.isHidden = true
+//            jobsMapContainer.isHidden = true
+            pickUserContainer.isHidden = false
             quickJobsContainer.isHidden = false
             myAccountContainer.isHidden = true
             searchTagContainer.isHidden = false
@@ -200,7 +208,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
             requestDeliveryView.addGestureRecognizer(new_job_tap)
             pickPersonView.addGestureRecognizer(pick_user_tap)
+            
+            setPublicUsers()
         }
+        
         self.updateLinks()
     }
     
@@ -216,7 +227,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             newJobCardView.isHidden = true
             appliedJobsContainer.isHidden = false
-            jobsMapContainer.isHidden = false
+//            jobsMapContainer.isHidden = false
             quickJobsContainer.isHidden = true
             myAccountContainer.isHidden = false
             searchTagContainer.isHidden = true
@@ -235,7 +246,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             newJobCardView.isHidden = false
             appliedJobsContainer.isHidden = true
-            jobsMapContainer.isHidden = true
+//            jobsMapContainer.isHidden = true
             quickJobsContainer.isHidden = false
             myAccountContainer.isHidden = true
             searchTagContainer.isHidden = false
@@ -470,11 +481,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         return []
     }
     
-    
-    
-    
-    
-    
     func setAccountInfo(){
         var my_id = Auth.auth().currentUser!.uid
         var myAccount = self.getAccountIfExists(uid: my_id)!
@@ -541,15 +547,285 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    func setUpJobMap(){
-        let newJobs = self.getNewJobsIfExists()
-        new_jobs.removeAll()
+    var pickedUsers: [String] = []
+    var selectedUsers: [String] = []
+    var addedCircles = [String : GMSCircle]()
+    
+    func setPublicUsers(){
+        pickedUsers = getAppropriateUsers()
+        publicUsersCollection.delegate = self
+        publicUsersCollection.dataSource = self
         
-        for item in newJobs{
-            if (isJobOk(job: item) && item.location_desc != nil && item.location_desc! != ""){
-                new_jobs.append(item.job_id!)
+        if pickedUsers.isEmpty{
+            publicUsersCollection.isHidden = true
+        }else{
+            publicUsersCollection.isHidden = false
+        }
+        
+        setUpJobMap()
+    }
+    
+    func getAppropriateUsers() -> [String]{
+        self.pickedUsers.removeAll()
+        let pub_users = self.getSharedLocationUsersIfExists()
+        var picked_users = [String]()
+        
+        if selectedTags.isEmpty{
+            for item in pub_users{
+                picked_users.append(item.uid!)
+            }
+            return picked_users
+        }
+        
+        for user in pub_users{
+            let matching_ratings = getRatingsMatchingPickedTags(user.uid!)
+            let matching_jobs = getApplicationsMatchingPickedTags(user_id: user.uid!)
+            
+            if !matching_jobs.isEmpty || !matching_ratings.isEmpty{
+                if(!picked_users.contains(user.uid!)){
+                    picked_users.append(user.uid!)
+                }
             }
         }
+        
+        if !selectedUsers.isEmpty{
+            for user in selectedUsers{
+                if(!picked_users.contains(user)){
+                    picked_users.append(user)
+                }
+            }
+        }
+        
+        
+        return picked_users
+    }
+    
+    func getRatingsMatchingPickedTags(_ user_id: String) -> [Rating]{
+        var user_ratings = self.getAccountRatings(user_id)
+        for r in user_ratings{
+//            print("\(user_id) sent rating to \(r.user_id)")
+        }
+        
+//        var added_rating_job_ids = [String]()
+//        for r in self.getAccountRatings(user_id){
+//            if !added_rating_job_ids.contains(r.job_id!) {
+//                print("\(user_id) : adding rating: \(r.job_id!)")
+//                user_ratings.append(r)
+//                added_rating_job_ids.append(r.job_id!)
+//            }
+//        }
+        
+        let user = self.getAccountIfExists(uid: user_id)
+        
+        let uploaded_jbs = self.getUploadedJobsIfExists()
+        var up_job_ids = [String]()
+        for item in uploaded_jbs {
+            up_job_ids.append(item.job_id!)
+        }
+        
+        let me_uid = Auth.auth().currentUser!.uid
+        var picked_ratings = [Rating]()
+
+        
+        if selectedTags.isEmpty{
+            for rating in user_ratings{
+                let job_id = rating.job_id
+                let job = self.getJobIfExists(job_id: job_id!)
+                
+                if (job != nil) {
+                    let correct_id = "\(job!.uploader_id!)\(job!.job_id!)"
+                    if (rating.rating_id! == correct_id) {
+                        picked_ratings.append(rating)
+                    }else{
+                        print("Rating_id -> \(rating.rating_id!) : correct id -> \(correct_id)")
+                    }
+                    
+                }else{
+                    
+                }
+            }
+            return picked_ratings
+        }else{
+            for item in user_ratings{
+                let job_id = item.job_id
+                let job = self.getJobIfExists(job_id: job_id!)
+                
+                if (job != nil) {
+                    if job!.uploader_id! != me_uid{
+                        var jobTags = [JobTag]()
+                        for tag in job!.tags! {
+                            jobTags.append(tag as! JobTag)
+                        }
+                        
+                        for tag in jobTags{
+                            if selectedTags.contains(tag.title!) {
+                                //the rating can be used
+                                picked_ratings.append(item)
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return picked_ratings
+        }
+    }
+    
+    func getApplicationsMatchingPickedTags(user_id: String) -> [JobApplications]{
+        let user_applications = self.getJobApplicationsIfExists(user_id: user_id)
+        var picked_applications = [JobApplications]()
+        
+        if selectedTags.isEmpty{
+            return user_applications
+        }else{
+            for item in user_applications {
+                let job = self.getJobIfExists(job_id: item.job_id!)
+                
+                if job != nil {
+                    var jobTags = [JobTag]()
+                    for tag in job!.tags! {
+                        jobTags.append(tag as! JobTag)
+                    }
+                    
+                    for tag in jobTags{
+                        if selectedTags.contains(tag.title!) {
+                            //the rating can be used
+                            picked_applications.append(item)
+                            break
+                        }
+                    }
+                }
+            }
+            
+            return picked_applications
+        }
+        
+    }
+    
+    func getPubUsersLocation(_ user_id: String) -> LatLng? {
+        var pub_user = self.getSharedLocationUserIfExists(user_id: user_id)
+        var json = pub_user!.loc_pack!
+        
+        print("json : \(json)")
+        
+        let decoder = JSONDecoder()
+        let jsonData = json.data(using: .utf8)!
+        
+        do{
+            let shared_user_ld: location_packet =  try decoder.decode(location_packet.self, from: jsonData)
+            
+            if !shared_user_ld.received_locations.isEmpty{
+                let picked_loc = shared_user_ld.received_locations[0].lat
+                
+                return picked_loc
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    struct shared_user_location_data: Codable{
+        var creation_time = 0
+        var uid = ""
+        var loc_pack = location_packet()
+    }
+    
+    struct location_packet: Codable{
+        var received_locations = [Location_Item]()
+        var geo_string = ""
+        var location_desc = ""
+    }
+    
+    struct Location_Item: Codable{
+        var creation_time = 0
+        var lat = LatLng()
+    }
+    
+    struct LatLng: Codable{
+        var latitude = 0.0
+        var longitude = 0.0
+    }
+    
+    func getJobApplicationsIfExists(user_id: String) -> [JobApplications] {
+        do{
+            let request = JobApplications.fetchRequest() as NSFetchRequest<JobApplications>
+            let predic = NSPredicate(format: "user_id == %@ ", user_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    func getSharedLocationUserIfExists(user_id: String) -> SharedLocationUser? {
+        do{
+            let request = SharedLocationUser.fetchRequest() as NSFetchRequest<SharedLocationUser>
+            let predic = NSPredicate(format: "uid == %@", user_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    func getSharedLocationUsersIfExists() -> [SharedLocationUser] {
+        do{
+            let request = SharedLocationUser.fetchRequest() as NSFetchRequest<SharedLocationUser>
+//            let predic = NSPredicate(format: "user_id == %@", user_id)
+//            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    
+    
+    
+    
+    // MARK: - Job Map Parts
+    func setUpJobMap(){
+        if amIAirworker() {
+            let newJobs = self.getNewJobsIfExists()
+            new_jobs.removeAll()
+            
+            for item in newJobs{
+                if (isJobOk(job: item) && item.location_desc != nil && item.location_desc! != ""){
+                    new_jobs.append(item.job_id!)
+                }
+            }
+        }else{
+            
+        }
+        
                 
         //lets load the map
         self.locationManager.requestAlwaysAuthorization()
@@ -595,15 +871,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
         }
         
-        jobsCollectionView.delegate = self
-        jobsCollectionView.dataSource = self
-        
-        jobsCollectionView.reloadData()
-        
-        if new_jobs.isEmpty{
-            newJobIconsContainer.isHidden = true
-        }else{
-            newJobIconsContainer.isHidden = false
+        if amIAirworker(){
+            jobsCollectionView.delegate = self
+            jobsCollectionView.dataSource = self
+            
+            jobsCollectionView.reloadData()
+            
+            if new_jobs.isEmpty{
+                newJobIconsContainer.isHidden = true
+            }else{
+                newJobIconsContainer.isHidden = false
+            }
         }
     }
     
@@ -611,21 +889,33 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
         print("locations = \(locValue.latitude) \(locValue.longitude)")
         
-        if(self.myLat == 0.0){
+        if amIAirworker(){
+            if(self.myLat == 0.0){
+                self.myLat = -1.286389
+    //                locValue.latitude
+                self.myLong = 36.817223
+    //                locValue.longitude
+                
+                self.moveCamera(self.myLat, self.myLong)
+                self.setMyLocation(self.myLat, self.myLong)
+                self.addJobsOnMap()
+            }
             self.myLat = -1.286389
-//                locValue.latitude
+    //                locValue.latitude
             self.myLong = 36.817223
-//                locValue.longitude
-            
-            self.moveCamera(self.myLat, self.myLong)
-            self.setMyLocation(self.myLat, self.myLong)
-            self.addJobsOnMap()
+    //                locValue.longitude
+        }else{
+            if(self.myLat == 0.0){
+                self.myLat = locValue.latitude
+                self.myLong = locValue.longitude
+                
+                self.moveCamera(self.myLat, self.myLong)
+                self.setMyLocation(self.myLat, self.myLong)
+                self.setAllUsersOnMap()
+            }
+            self.myLat = locValue.latitude
+            self.myLong = locValue.longitude
         }
-        self.myLat = -1.286389
-//                locValue.latitude
-        self.myLong = 36.817223
-//                locValue.longitude
-        
     }
     
     func moveCamera(_ lat: Double,_ long: Double){
@@ -819,7 +1109,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 let dec_path = GMSMutablePath(fromEncodedPath: path)!
                                 
                                 let polyline = GMSPolyline(path: dec_path)
-                                let color = self.getLineColorForUser(job_id: job_id)
+                                var color = UIColor(named: "JobSeen")!
+                                if self.amIAirworker(){
+                                    color = self.getLineColorForUser(job_id: job_id)
+                                }
+                                
                                 polyline.strokeColor = color
                                 polyline.strokeWidth = 3
                                 
@@ -878,7 +1172,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func startAnimation(_ polyline_list : [GMSPolyline]){
-        
         polyline_list[pos].map = mapView
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
             print("running animation")
@@ -933,7 +1226,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         return color
     }
-    
 
     
     func setJobInfoForPickedNewJob(job: Job){
@@ -1031,11 +1323,143 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
+    func setAllUsersOnMap(){
+        var bounds = GMSCoordinateBounds()
+        var position = CLLocationCoordinate2DMake(self.myLat, self.myLong)
+        
+        for user in pickedUsers{
+            var their_loc = getPubUsersLocation(user)
+            
+            if their_loc != nil {
+                var user_ratings = self.getRatingsMatchingPickedTags(user)
+                var position = CLLocationCoordinate2DMake(their_loc!.latitude, their_loc!.longitude)
+                var marker = GMSMarker(position: position)
+                
+                if user_ratings.isEmpty{
+                    marker.title = "New!."
+                }else if user_ratings.count == 1 {
+                    marker.snippet = "\(user_ratings.count)"
+                    marker.title = "★\(self.getAverage(user_ratings))"
+                }else{
+                    marker.snippet = "\(user_ratings.count)"
+                    marker.title = "★\(self.getAverage(user_ratings))"
+                }
+                
+                marker.icon = UIImage(named: "PickUserIcon")
+                marker.map = mapView
+                
+                addedMarkers[user] = marker
+                
+                var position2 = CLLocationCoordinate2DMake(their_loc!.latitude, their_loc!.longitude)
+                bounds = bounds.includingCoordinate(position2)
+            }
+        }
+        
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            let update = GMSCameraUpdate.fit(bounds, withPadding: 50)
+            self.mapView.animate(with: update)
+        }
+    }
+    
+    func showAllPickedUsers(){
+        var bounds = GMSCoordinateBounds()
+        var position = CLLocationCoordinate2DMake(self.myLat, self.myLong)
+        bounds = bounds.includingCoordinate(position)
+        
+        for user in selectedUsers{
+            var their_loc = getPubUsersLocation(user)
+            
+            if their_loc != nil {
+                var position2 = CLLocationCoordinate2DMake(their_loc!.latitude, their_loc!.longitude)
+                bounds = bounds.includingCoordinate(position2)
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            if !self.selectedUsers.isEmpty{
+                let update = GMSCameraUpdate.fit(bounds, withPadding: 50)
+                self.mapView.animate(with: update)
+            }
+        }
+    }
+    
+    func drawLineToPickedUsers(){
+        for item in addedLines.values {
+            for line in item {
+                line.map = nil
+            }
+            
+        }
+        for user in selectedUsers{
+            var path = addedLines[user]
+            var their_loc = getPubUsersLocation(user)
+            self.map_job_id = user
+            
+            if their_loc != nil {
+                if path == nil {
+                    var new_path = GMSMutablePath()
+                    
+                    new_path.add(CLLocationCoordinate2D(latitude: self.myLat, longitude: self.myLong))
+                    new_path.add(CLLocationCoordinate2D(latitude: their_loc!.latitude, longitude: their_loc!.longitude))
+                    
+                    
+                    var polyline_list = [GMSPolyline]()
+                    
+                    let polyline = GMSPolyline(path: new_path)
+                    polyline.geodesic = true
+                    let color = UIColor(named: "JobApplied")!
+                    polyline.strokeColor = color
+                    polyline.strokeWidth = 3
+                    polyline.map = mapView
+                    
+                    polyline_list.append(polyline)
+                    self.addedLines[user] = polyline_list
+                    
+                    let coordinate₀ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+                    let coordinate₁ = CLLocation(latitude: their_loc!.latitude, longitude: their_loc!.longitude)
+                    
+                    if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) < self.MAX_DISTANCE_TRHESHOLD) {
+                        //I only want to show directions for people close to me
+                        self.getRoadPathToUser(user, self.myLat, self.myLong, their_loc!.latitude, their_loc!.longitude)
+
+                    }
+                }else{
+                    print("removing drawn paths-------")
+//                    for item in path! {
+//                        item.map = nil
+//                    }
+//                    path!.removeAll()
+//
+//                    let coordinate₀ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+//                    let coordinate₁ = CLLocation(latitude: their_loc!.latitude, longitude: their_loc!.longitude)
+//
+//
+//
+//                    if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) < self.MAX_DISTANCE_TRHESHOLD) {
+//                        //I only want to show directions for people close to me
+//                        self.getRoadPathToUser(user, self.myLat, self.myLong, their_loc!.latitude, their_loc!.longitude)
+//
+//                    }
+                    
+                    self.runAnimationForDirection(path!)
+                }
+            }
+        }
+    }
+    
+  
+    
+    
+    
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == tagsCollection {
             return jobTags.count
         }else if collectionView == quckJobTagsCollection{
             return tags_to_show.count
+        }else if collectionView == publicUsersCollection{
+            return pickedUsers.count
         }
         return new_jobs.count
         
@@ -1068,6 +1492,58 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return cell
         }
         
+        if collectionView == publicUsersCollection{
+            let reuseIdentifier = "QuickUserCell"
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath) as! QuickUserCollectionViewCell
+            
+            let uid = pickedUsers[indexPath.row]
+            let user = self.getAccountIfExists(uid: uid)
+            let user_ratings = self.getRatingsMatchingPickedTags(uid)
+            let users_applications = self.getApplicationsMatchingPickedTags(user_id: uid)
+            let shared_pub_user = self.getSharedLocationUserIfExists(user_id: uid)
+            
+            
+            if user_ratings.isEmpty{
+                cell.ratingsLabel.text = "New!."
+            }else if user_ratings.count == 1 {
+                cell.ratingsLabel.text = "\(user_ratings.count) Rated."
+            }else{
+                cell.ratingsLabel.text = "\(user_ratings.count) Rated."
+            }
+            
+            if users_applications.isEmpty{
+                cell.applicationsLabel.text = "New!."
+            }else if users_applications.count == 1 {
+                cell.applicationsLabel.text = "\(users_applications.count) Applied."
+            }else{
+                cell.applicationsLabel.text = "\(users_applications.count) Applied."
+            }
+            
+//            var date = Date(timeIntervalSince1970: TimeInterval(shared_pub_user!.last_online) / 1000)
+//            var timeOffset = date.offset(from: Date())
+//            if timeOffset == "" {
+//                timeOffset = Date().offset(from: date)
+//                cell.lastOnlineLabel.text = "Active: \(timeOffset) ago."
+//            }else{
+//                cell.lastOnlineLabel.text = "Active: \(timeOffset) ago."
+//            }
+            
+            print("user \(uid) : ratings: \(user_ratings.count) , applications: \(users_applications.count)")
+            
+            if selectedUsers.contains(uid){
+                cell.containerCardView.backgroundColor = UIColor.darkGray
+                
+//                cell.mapIconView.image = UIImage(named: "PickedUserIcon")
+            }else{
+//                cell.mapIconView.image = UIImage(named: "PickUserIcon")
+                
+                let c = UIColor(named: "JobCardColor")
+                cell.containerCardView.backgroundColor = c
+            }
+            
+            return cell
+        }
+        
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "NewJobIconItemCell", for: indexPath) as! NewJobItemCollectionViewCell
         
         return cell
@@ -1095,13 +1571,46 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             tags_to_show = getTheTagsToShow()
             quckJobTagsCollection.reloadData()
             
+            pickedUsers = getAppropriateUsers()
+            publicUsersCollection.reloadData()
+            drawLineToPickedUsers()
+            showAllPickedUsers()
+            
+            if pickedUsers.isEmpty{
+                publicUsersCollection.isHidden = true
+            }else{
+                publicUsersCollection.isHidden = false
+            }
+            
             if selectedTags.isEmpty {
                 createJobFromTagsButton.isEnabled = false
                 createJobFromTagsButtonContainer.isHidden = true
+                if selectedUsers.isEmpty{
+                    sendQuickJobContainer.isHidden = true
+                    sendCustomJobContainer.isHidden = true
+                }else{
+                    if selectedTags.isEmpty {
+                        sendQuickJobContainer.isHidden = true
+                    }else{
+                        sendQuickJobContainer.isHidden = false
+                    }
+                    sendCustomJobContainer.isHidden = false
+                }
                 jobTagPrices.text = "Pick a tag..."
             }else{
                 createJobFromTagsButton.isEnabled = true
                 createJobFromTagsButtonContainer.isHidden = false
+                if selectedUsers.isEmpty{
+                    sendQuickJobContainer.isHidden = true
+                    sendCustomJobContainer.isHidden = true
+                }else{
+                    if selectedTags.isEmpty {
+                        sendQuickJobContainer.isHidden = true
+                    }else{
+                        sendQuickJobContainer.isHidden = false
+                    }
+                    sendCustomJobContainer.isHidden = false
+                }
                 calculatePriceFromTag()
             }
             
@@ -1109,7 +1618,111 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //
 //            }
         }
+        
+        if collectionView == publicUsersCollection{
+            var picked_user = pickedUsers[indexPath.row]
+            var their_loc = getPubUsersLocation(picked_user)
+            
+            
+            let marker = addedMarkers[picked_user]!
+            if(selectedUsers.contains(picked_user)){
+                let pos = selectedUsers.firstIndex(of: picked_user)!
+                selectedUsers.remove(at: pos)
+                marker.icon = UIImage(named: "PickUserIcon")
+                
+                if addedCircles[picked_user] != nil {
+                    addedCircles[picked_user]!.map = nil
+                    addedCircles.removeValue(forKey: picked_user)
+                }
+            }else{
+                selectedUsers.append(picked_user)
+                marker.icon = UIImage(named: "PickedUserIcon")
+                
+                let circleCenter = CLLocationCoordinate2D(latitude: marker.position.latitude, longitude: marker.position.longitude)
+                let circle = GMSCircle(position: circleCenter, radius: 200)
+                
+                circle.fillColor = UIColor(red: 113, green: 204, blue: 231, alpha: 0.1)
+                circle.strokeColor = .none
+                
+                circle.map = mapView
+                addedCircles[picked_user] = circle
+                
+                if their_loc != nil {
+                    mapView.animate(to: GMSCameraPosition(latitude: their_loc!.latitude, longitude: their_loc!.longitude, zoom: mapView.camera.zoom))
+                }
+            }
+            
+            pickedUsers = getAppropriateUsers()
+            publicUsersCollection.reloadData()
+            drawLineToPickedUsers()
+            showAllPickedUsers()
+            
+            if pickedUsers.isEmpty{
+                publicUsersCollection.isHidden = true
+        
+            }else{
+                publicUsersCollection.isHidden = false
+
+            }
+            
+            if selectedUsers.isEmpty{
+                sendQuickJobContainer.isHidden = true
+                sendCustomJobContainer.isHidden = true
+            }else{
+                if selectedTags.isEmpty {
+                    sendQuickJobContainer.isHidden = true
+                }else{
+                    sendQuickJobContainer.isHidden = false
+                }
+                sendCustomJobContainer.isHidden = false
+            }
+           
+        }
      }
+    
+    
+    @IBAction func whenSendQuickJobTapped(_ sender: Any) {
+        var job_item = quickJobItem()
+        job_item.jobTitle = "\(selectedTags[0]) work."
+        job_item.tags_to_use.append(contentsOf: selectedTags)
+        
+        let similar_job = self.checkForSimilarRecentJob(job_item: job_item)
+        if similar_job == nil {
+            self.uploadJobFromSuggestion(job_item: job_item)
+        }else{
+            self.pickedQuickJob = similar_job!
+            self.quickJobButton.sendActions(for: .touchUpInside)
+        }
+        
+        for picked_user in selectedUsers{
+            let marker = addedMarkers[picked_user]!
+            let pos = selectedUsers.firstIndex(of: picked_user)!
+            selectedUsers.remove(at: pos)
+            marker.icon = UIImage(named: "PickUserIcon")
+            
+            if addedCircles[picked_user] != nil {
+                addedCircles[picked_user]!.map = nil
+                addedCircles.removeValue(forKey: picked_user)
+            }
+        }
+        selectedUsers.removeAll()
+        if selectedUsers.isEmpty{
+            sendQuickJobContainer.isHidden = true
+            sendCustomJobContainer.isHidden = true
+        }else{
+            if selectedTags.isEmpty {
+                sendQuickJobContainer.isHidden = true
+            }else{
+                sendQuickJobContainer.isHidden = false
+            }
+            sendCustomJobContainer.isHidden = false
+        }
+        
+        pickedUsers = getAppropriateUsers()
+        publicUsersCollection.reloadData()
+        drawLineToPickedUsers()
+        showAllPickedUsers()
+    }
     
     
     @IBAction func whenNewJobFromTagTapped(_ sender: Any) {
@@ -1698,7 +2311,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         for item in my_uploadeds {
             let its_job = self.getJobIfExists(job_id: item.job_id!)
             if its_job != nil {
-                print("checking uploaded job --------------- \(its_job?.job_title)")
+//                print("checking uploaded job --------------- \(its_job?.job_title)")
 
                 let today = Date()
                 let end_date_for_visibility = DateComponents(calendar: .current, year: Int(its_job!.end_year), month: Int(its_job!.end_month)+1, day: Int(its_job!.end_day)).date!
@@ -1719,7 +2332,42 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     let allElemtsEqual = findListSet.isSubset(of: listSet)
                     
                     if allElemtsEqual {
-                        return its_job!.job_id!
+                        print("found a similar job!")
+                        if !its_job!.is_job_private{
+                            
+                            return its_job!.job_id!
+                        }else{
+                            //check if invited users match
+                            print("similar job is private! - checking if invited users match")
+                            var selected_users_json = its_job!.selected_users_for_job
+                            let decoder = JSONDecoder()
+                            
+                            do{
+                                var selected_users = selected_users_class()
+                                
+                                if selected_users_json != nil && selected_users_json != "" {
+                                    let jsonData = selected_users_json!.data(using: .utf8)!
+                                    selected_users = try decoder.decode(selected_users_class.self ,from: jsonData)
+                                }
+                                
+                                if !selected_users.selected_users_for_job.isEmpty {
+                                    var list:Array<String> = selectedUsers
+                                    var findList:Array<String> = selected_users.selected_users_for_job
+
+                                    let listSet = Set(list)
+                                    let findListSet = Set(findList)
+
+                                    let allElemtsEqual = findListSet.isSubset(of: listSet)
+                                    
+                                    if allElemtsEqual {
+                                        print("found similar private job -------- \(its_job!.job_id!)")
+                                        return its_job!.job_id!
+                                    }
+                                }
+                            }catch{
+                                print("\(error.localizedDescription)")
+                            }
+                        }
                     }
                 }
             }
@@ -1745,8 +2393,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var lat = 0.0
         var lng = 0.0
         var amount = 0
-        var is_job_private = false
+        var is_job_private = !selectedUsers.isEmpty
         var pickedUsers: [String] = []
+        
+        pickedUsers.append(contentsOf: selectedUsers)
         
         let newJobRef = db.collection(constants.jobs)
             .document(me!.phone!.country_name!)
@@ -1993,6 +2643,25 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }
         }
         
+        
+        for user_id in pickedUsers {
+            let ref = db.collection(constants.airworkers_ref)
+                .document(user_id)
+                .collection(constants.notifications)
+                .document()
+            ref.setData([
+                "message" : "\(me!.name!) has invited you to do a job.",
+                "time" : upload_time,
+                "user_name" : me!.name!,
+                "user_id" : user_id,
+                "job_id" : key,
+                "pending" : isJobOk,
+                "notif_id" : ref.documentID
+            ])
+        }
+        
+        
+        
         self.quickJobButton.sendActions(for: .touchUpInside)
     }
     
@@ -2031,6 +2700,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         saveContext(constants.swapped_account_type)
         removeFirebaseListeners()
         setUpViews()
+        
+        homePageScrollView.setContentOffset(.zero, animated: false)
+        
     }
     
     func amIAirworker() -> Bool{
@@ -2074,7 +2746,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             print("error clearing data for account switch")
         }
     }
-    
     
     
     
@@ -2284,6 +2955,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             skillsViewController.applicant_id = me
             skillsViewController.title = myAcc!.name!
+            
+        case "openCustomNewJobSegue":
+            let navVC = segue.destination as? UINavigationController
+            let titleVC = navVC?.viewControllers.first as! NewJobTitleViewController
+            
+            titleVC.pickedUsers = selectedUsers
             
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")
@@ -4632,24 +5309,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         return nil
     }
     
-    func getSharedLocationUserIfExists(user_id: String) -> SharedLocationUser? {
-        do{
-            let request = SharedLocationUser.fetchRequest() as NSFetchRequest<SharedLocationUser>
-            let predic = NSPredicate(format: "uid == %@", user_id)
-            request.predicate = predic
-            
-            let items = try context.fetch(request)
-            
-            if(!items.isEmpty){
-                return items[0]
-            }
-            
-        }catch {
-            
-        }
-        
-        return nil
-    }
     
     func getAppliedJobIfExists(job_id: String) -> AppliedJob? {
         do{
