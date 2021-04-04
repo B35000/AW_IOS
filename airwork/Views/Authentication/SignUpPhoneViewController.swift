@@ -17,6 +17,8 @@ class SignUpPhoneViewController: UIViewController {
     @IBOutlet weak var errorLabel: UILabel!
     let db = Firestore.firestore()
     var constants = Constants.init()
+    var isAlreadyAnon = false
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,7 +30,11 @@ class SignUpPhoneViewController: UIViewController {
 //        phoneNumberField.leftViewMode = .always
 //        self.cpvTextField = cp
         
-        
+        if Auth.auth().currentUser != nil {
+            if (Auth.auth().currentUser!.isAnonymous) {
+                isAlreadyAnon = true
+            }
+        }
     }
     
 
@@ -206,11 +212,7 @@ class SignUpPhoneViewController: UIViewController {
         
         
     }
-    
-    func setDataInDB(uid: String){
 
-            
-    }
     
     
     func showError(_ error: String){
@@ -251,9 +253,13 @@ class SignUpPhoneViewController: UIViewController {
     func transitionToHome(){
         let id = "HomeTabBarController"
     
-        let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController
-        view.window?.rootViewController = homeViewController
-        view.window?.makeKeyAndVisible()
+        if isAlreadyAnon{
+            dismiss(animated: true, completion: nil)
+        }else{
+            let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController
+            view.window?.rootViewController = homeViewController
+            view.window?.makeKeyAndVisible()
+        }
     }
     
     

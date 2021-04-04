@@ -20,7 +20,7 @@ class PendingRatingsViewController: UIViewController, UITableViewDelegate, UITab
     @IBOutlet weak var skipBarButton: UIBarButtonItem!
     @IBOutlet weak var openNewJobPart: UIButton!
     
-    
+    var hideSkipButton = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,13 +42,24 @@ class PendingRatingsViewController: UIViewController, UITableViewDelegate, UITab
         if !myJobs.isEmpty{
             pendingJobsTableView.delegate = self
             pendingJobsTableView.dataSource = self
+            
+            if hideSkipButton {
+                skipBarButton.isEnabled = false
+            }else{
+                skipBarButton.isEnabled = true
+            }
+            
         }else{
             //just go back
 //            self.navigationController?.popViewController(animated: true)
             
-            openNewJobPart.sendActions(for: .touchUpInside)
+            if !amIAirworker(){
+                openNewJobPart.sendActions(for: .touchUpInside)
+            }
+            
             self.navigationController?.popViewController(animated: false)
         }
+        
     }
     
     func getPendingJobs(){

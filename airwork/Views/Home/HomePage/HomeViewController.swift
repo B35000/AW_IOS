@@ -84,6 +84,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var verifyEmailContainer: UIView!
     @IBOutlet weak var addCertificateContainer: UIView!
     
+    @IBOutlet weak var hiddenSignUpButton: UIButton! //above request custom job container
+    @IBOutlet weak var hiddenSignUpButton2: UIButton! //above create job from picked tags button
+    @IBOutlet weak var hiddenSignUpButton3: UIButton! //above the send quick job button
+    @IBOutlet weak var hiddenSignUpButton4: UIButton! // above the send custom job button
+    @IBOutlet weak var hiddenViewPendingRatingsButton: UIButton!
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -139,6 +144,24 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 //        let text = notification.object as! String
         
     }
+    
+    @IBAction func whenHiddenSignUpButtonTapped(_ sender: Any) {
+        self.hiddenSignUpButton.sendActions(for: .touchUpInside)
+    }
+    
+    @IBAction func whenHiddenSignUpButton2Tapped(_ sender: Any) {
+        self.hiddenSignUpButton.sendActions(for: .touchUpInside)
+    }
+    
+    @IBAction func whenHiddenSignUpButton3Tapped(_ sender: Any) {
+        self.hiddenSignUpButton.sendActions(for: .touchUpInside)
+    }
+    
+    @IBAction func whenHiddenViewPendingRatingsTapped(_ sender: Any) {
+        openPendingRatingsButton.sendActions(for: .touchUpInside)
+    }
+    
+    
     
     func setUpViews(){
         removeFirebaseListeners()
@@ -258,9 +281,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !myJobs.isEmpty{
                 openPendingRatingsButton.isHidden = false
+                hiddenViewPendingRatingsButton.isHidden = false
                 openNewJobsButton.isHidden = true
             }else{
                 openPendingRatingsButton.isHidden = true
+                hiddenViewPendingRatingsButton.isHidden = true
                 openNewJobsButton.isHidden = false
             }
             
@@ -286,8 +311,18 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.verifyEmailContainer.isHidden = true
                 self.verifyIdentityContainer.isHidden = true
                 self.createAccountContainer.isHidden = false
+                
+                self.hiddenSignUpButton.isHidden = false
+                self.hiddenSignUpButton2.isHidden = false
+                self.hiddenSignUpButton3.isHidden = false
+                self.hiddenSignUpButton4.isHidden = false
             }else{
                 self.createAccountContainer.isHidden = true
+                self.hiddenSignUpButton.isHidden = true
+                self.hiddenSignUpButton2.isHidden = true
+                self.hiddenSignUpButton3.isHidden = true
+                self.hiddenSignUpButton4.isHidden = true
+                
                 if amIAirworker(){
                     self.addCertificateContainer.isHidden = false
                     
@@ -335,7 +370,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         for item in my_ratings {
             print("loaded rating: \(item.rating_id)")
         }
-        print("my ratings size:-------------- \(my_ratings.count)")
+//        print("my ratings size:-------------- \(my_ratings.count)")
         
         for item in my_ratings {
             if(!paid_jobs.contains(item.job_id!)){
@@ -480,6 +515,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         return []
     }
+    
+    
+    
+    
+    
     
     func setAccountInfo(){
         var my_id = Auth.auth().currentUser!.uid

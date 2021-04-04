@@ -14,6 +14,7 @@ class SignInViewController: UIViewController {
     @IBOutlet weak var passwordInputField: UITextField!
     @IBOutlet weak var errorLabel: UILabel!
     let db = Firestore.firestore()
+    var isAlreadyAnon = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +24,11 @@ class SignInViewController: UIViewController {
 //        GIDSignIn.sharedInstance().signIn()
         NotificationCenter.default.addObserver(self, selector: #selector(didGetNotification(_:)), name: NSNotification.Name(rawValue: "signed-in"), object: nil)
         
+        if Auth.auth().currentUser != nil {
+            if (Auth.auth().currentUser!.isAnonymous) {
+                isAlreadyAnon = true
+            }
+        }
     }
     
     @objc func didGetNotification(_ notification: Notification){
@@ -112,9 +118,13 @@ class SignInViewController: UIViewController {
     func transitionToHome(){
         let id = "HomeTabBarController"
     
-        let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController
-        view.window?.rootViewController = homeViewController
-        view.window?.makeKeyAndVisible()
+        if isAlreadyAnon{
+            dismiss(animated: true, completion: nil)
+        }else{
+            let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController
+            view.window?.rootViewController = homeViewController
+            view.window?.makeKeyAndVisible()
+        }
     }
     
     

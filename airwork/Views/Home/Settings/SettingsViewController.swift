@@ -184,6 +184,57 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     }
     
     
+    @IBAction func onSignOutTapped(_ sender: Any) {
+        let contactRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Contact")
+        let contactDeleteRequest = NSBatchDeleteRequest( fetchRequest: contactRequest)
+        
+        let NotificationRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Notification")
+        let NotificationDeleteRequest = NSBatchDeleteRequest( fetchRequest: NotificationRequest)
+        
+        let ComplaintRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Complaint")
+        let ComplaintDeleteRequest = NSBatchDeleteRequest( fetchRequest: ComplaintRequest)
+        
+        let RatingRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Rating")
+        let RatingDeleteRequest = NSBatchDeleteRequest( fetchRequest: RatingRequest)
+        
+        let AccountRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Account")
+        let AccountDeleteRequest = NSBatchDeleteRequest( fetchRequest: RatingRequest)
+        
+        let PaymentRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "JobPayment")
+        let PaymentDeleteRequest = NSBatchDeleteRequest( fetchRequest: PaymentRequest)
+        
+        let ApplicationsRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "AppliedJob")
+        let ApplicationsDeleteRequest = NSBatchDeleteRequest( fetchRequest: ApplicationsRequest)
+        
+        let UploadedJobsRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "UploadedJob")
+        let UploadedJobsDeleteRequest = NSBatchDeleteRequest( fetchRequest: UploadedJobsRequest)
+
+        do{
+            try context.execute(contactDeleteRequest)
+            try context.execute(NotificationDeleteRequest)
+            try context.execute(ComplaintDeleteRequest)
+            try context.execute(RatingDeleteRequest)
+            try context.execute(AccountDeleteRequest)
+            
+            try context.execute(PaymentDeleteRequest)
+            try context.execute(ApplicationsDeleteRequest)
+            try context.execute(UploadedJobsDeleteRequest)
+            
+            
+            try Auth.auth().signOut()
+            
+            let id = "SignUpNavigationController"
+        
+            let SignUpIntroViewController = self.storyboard?.instantiateViewController(identifier: id) as? SignUpNavigationController
+            self.view.window?.rootViewController = SignUpIntroViewController
+            self.view.window?.makeKeyAndVisible()
+            
+        }catch let error as NSError {
+            print("error clearing data for sign out \(error.localizedDescription)")
+        }
+    }
+    
+    
 //  MARK: Pick image for job
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         // Dismiss the picker if the user canceled.

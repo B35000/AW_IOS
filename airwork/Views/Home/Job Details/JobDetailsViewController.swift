@@ -101,6 +101,14 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
     @IBOutlet weak var myselectedLabel: UILabel!
     @IBOutlet weak var myapplicantHistoryView: UIView!
     
+    @IBOutlet weak var pendingRatingsContainer: UIView!
+    @IBOutlet weak var createAccountContainer: UIView!
+    @IBOutlet weak var verifyIdentityContainer: UIView!
+    @IBOutlet weak var verifyEmailContainer: UIView!
+    
+    @IBOutlet weak var openPendingRatingsButton: UIButton!
+    
+    
     var job_id: String = ""
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var job: Job? = nil
@@ -172,6 +180,305 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
                 "job_id" : job!.job_id!
             ])
     }
+    
+    func canIApplyForJob() -> Bool{
+        createAccountContainer.isHidden = true
+        verifyIdentityContainer.isHidden = true
+        pendingRatingsContainer.isHidden = true
+        verifyEmailContainer.isHidden = true
+        
+        
+        let my_application = self.getAppliedJobIfExists(job_id: job_id)
+        
+        if my_application != nil {
+            return true
+        }
+        
+        let uid = Auth.auth().currentUser!.uid
+        
+        if Auth.auth().currentUser!.isAnonymous {
+            createAccountContainer.isHidden = false
+            return false
+        }
+        
+        if (self.isEmailVerified()){
+            verifyEmailContainer.isHidden = false
+            return false
+        }
+        
+        var account = self.getApplicantAccount(user_id: uid)
+        if (account?.scan_id_data == nil || account?.scan_id_data == ""){
+            verifyIdentityContainer.isHidden = false
+            return false
+        }
+        
+        let any_unpaid_jobs = self.getUnpaidJobs()
+        if !any_unpaid_jobs.isEmpty {
+            pendingRatingsContainer.isHidden = false
+            return false
+        }
+        
+        
+        return true
+    }
+    
+    
+    func isEmailVerified() -> Bool{
+        let me = Auth.auth().currentUser!
+        me.reload { (e: Error?) in
+            
+        }
+        
+        return me.isEmailVerified
+        
+    }
+    
+    var my_jobs = [String]()
+    var my_job_ratings: [String: Double] = [String: Double]()
+    func getUnpaidJobs() -> [String] {
+        let payment_objs = self.getJobPaymentsIfExists()
+        var paid_jobs: [String] = [String]()
+        my_job_ratings.removeAll()
+        
+        for item in payment_objs {
+            let payment_receipt = self.getPaymentReceipt(item.payment_receipt!)
+            
+            for job in payment_receipt.paid_jobs {
+                paid_jobs.append(job.job_id)
+            }
+        }
+        
+        var my_received_ratings_jobs: [String] = [String]()
+        var my_id = Auth.auth().currentUser!.uid
+        let my_ratings = self.getAccountRatings(my_id)
+        
+        for item in my_ratings {
+            print("loaded rating: \(item.rating_id)")
+        }
+//        print("my ratings size:-------------- \(my_ratings.count)")
+        
+        for item in my_ratings {
+            if(!paid_jobs.contains(item.job_id!)){
+                my_received_ratings_jobs.append(item.job_id!)
+                my_job_ratings[item.job_id!] = item.rating
+            }
+        }
+        
+        return my_received_ratings_jobs
+    }
+    
+    func getPaymentReceipt(_ payment_receipt_json: String) -> PaymentReceipt{
+        let decoder = JSONDecoder()
+        
+        do{
+            let jsonData = payment_receipt_json.data(using: .utf8)!
+            let job_images =  try decoder.decode(PaymentReceipt.self, from: jsonData)
+            
+            return job_images
+        }catch{
+            print("error loading job images")
+        }
+        
+        return PaymentReceipt()
+    }
+    
+    struct PaymentReceipt: Codable{
+        var receipt_time = 0
+        var transaction_id = ""
+        var paymentResponse = PaymentResponse()
+        var method = PaymentMethod()
+        var paid_jobs: [encodable_job] = [encodable_job]()
+    }
+    
+    struct PaymentResponse: Codable{
+        var ResponseDescription = ""
+        var ResponseCode = ""
+        var MerchantRequestID = ""
+        
+        var CheckoutRequestID = ""
+        var ResultCode = ""
+        var ResultDesc = ""
+        var timeOfDay: String = ""
+        var datee: String = ""
+        var payingPhoneNumber: String = ""
+        var pushrefInAdminConsole: String = ""
+        var uploaderId: String = ""
+    }
+    
+    struct PaymentMethod: Codable{
+        var name = ""
+        var min_amount = 0
+        var min_amount_currency = ""
+    }
+    
+    
+    func getJobPaymentsIfExists() -> [JobPayment] {
+        do{
+            let request = JobPayment.fetchRequest() as NSFetchRequest<JobPayment>
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    var myJobs = [Job]()
+    func getPendingJobs(){
+        let my_uploaded_jobs = self.getUploadedJobsIfExists()
+        let my_applied_jobs = self.getAppliedJobsIfExists()
+        myJobs.removeAll()
+        
+        if amIAirworker(){
+            for applied_job in my_applied_jobs{
+                let job = self.getJobIfExists(job_id: applied_job.job_id!)
+                
+                if (job != nil) {
+                    //lets check if the jobs end date has past
+                    let today = Date()
+                    
+                    let end_date = DateComponents(calendar: .current, year: Int(job!.end_year), month: Int(job!.end_month)+1, day: Int(job!.end_day)).date!
+                    
+                    //compare the two dates
+                    
+                    
+                    var selected_users_json = job!.selected_workers ?? ""
+                    if (selected_users_json != "" && end_date < today) {
+            //            selected_users_json = job!.selected_workers!
+                        let decoder = JSONDecoder()
+                        let jsonData = selected_users_json.data(using: .utf8)!
+                        
+                        do{
+                            var selected_users = selected_workers()
+                            
+                            if selected_users_json != "" {
+                                selected_users = try decoder.decode(selected_workers.self ,from: jsonData)
+                            }
+                            
+                            if !selected_users.worker_list.isEmpty {
+                                let me = Auth.auth().currentUser?.uid
+                                
+                                if selected_users.worker_list.contains(me!){
+                                    var rating_id = me!+job!.job_id!
+                                    
+                                    var existing_rating = self.getRatingIfExists(rating_id: rating_id)
+                                    if existing_rating == nil {
+                                        //the applicant was chosen but has not been rated
+                                        if(!job!.ignore_unrated_workers){
+                                            myJobs.append(job!)
+                                        }
+                                    }
+                                }
+                                
+                            }
+                            
+                        }catch{
+                            print("error loading selected users")
+                        }
+                    }
+                }
+            }
+        }else{
+        
+            for uploaded_job in my_uploaded_jobs{
+                let job = self.getJobIfExists(job_id: uploaded_job.job_id!)
+                
+                if (job != nil) {
+                    //lets check if the jobs end date has past
+                    let today = Date()
+                    
+                    let end_date = DateComponents(calendar: .current, year: Int(job!.end_year), month: Int(job!.end_month)+1, day: Int(job!.end_day)).date!
+                    
+                    //compare the two dates
+                    
+                    
+                    var selected_users_json = job!.selected_workers ?? ""
+                    if (selected_users_json != "" && end_date < today) {
+            //            selected_users_json = job!.selected_workers!
+                        let decoder = JSONDecoder()
+                        let jsonData = selected_users_json.data(using: .utf8)!
+                        
+                        do{
+                            var selected_users = selected_workers()
+                            
+                            if selected_users_json != "" {
+                                selected_users = try decoder.decode(selected_workers.self ,from: jsonData)
+                            }
+                            
+                            if !selected_users.worker_list.isEmpty {
+                                for user in selected_users.worker_list{
+                                    var rating_id = user+job!.job_id!
+                                    
+                                    var existing_rating = self.getRatingIfExists(rating_id: rating_id)
+                                    if existing_rating == nil {
+                                        //the applicant was chosen but has not been rated
+                                        if(!job!.ignore_unrated_workers){
+                                            myJobs.append(job!)
+                                        }
+                                    }
+                                    else{
+    //                                    if(!job!.ignore_unrated_workers){
+    //                                        myJobs.append(job!)
+    //                                    }
+                                    }
+                                }
+                                
+                            }
+                            
+                        }catch{
+                            print("error loading selected users")
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
+    
+    func getUploadedJobsIfExists() -> [UploadedJob] {
+        do{
+            let request = UploadedJob.fetchRequest() as NSFetchRequest<UploadedJob>
+            let sortDesc = NSSortDescriptor(key: "upload_time", ascending: false)
+            request.sortDescriptors = [sortDesc]
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    func getAppliedJobsIfExists() -> [AppliedJob] {
+        do{
+            let request = AppliedJob.fetchRequest() as NSFetchRequest<AppliedJob>
+            let sortDesc = NSSortDescriptor(key: "application_time", ascending: false)
+            request.sortDescriptors = [sortDesc]
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
     
     func setUpViews(){
         print("goten job id: \(job_id)")
@@ -396,7 +703,9 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
         
         if amIAirworker() {
             takeDownContainer.isHidden = true
-            applyForJobContainer.isHidden = false
+            if self.canIApplyForJob(){
+                applyForJobContainer.isHidden = false
+            }
             rateWorkersContainer.isHidden = true
             rateOwnerView.isHidden = true
             jobOwnerRatingsContainer.isHidden = false
@@ -454,6 +763,13 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
                 }
             }
             
+            
+            self.getPendingJobs()
+            if self.myJobs.isEmpty{
+                self.openPendingRatingsButton.isHidden = true
+            }else{
+                self.openPendingRatingsButton.isHidden = false
+            }
             
         }
         else{
@@ -1872,6 +2188,13 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
             }
             
             applyViewController.job_id = job_id
+            
+        case "showPendingRatingsFirst":
+            guard let pendingVC = segue.destination as? PendingRatingsViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            
+            pendingVC.hideSkipButton = true
             
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")
