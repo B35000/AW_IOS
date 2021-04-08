@@ -18,6 +18,8 @@ class JobItemTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollect
     @IBOutlet weak var amountView: UIView!
     @IBOutlet weak var timeDurationView: UIView!
     @IBOutlet weak var takenDownImage: UIImageView!
+    @IBOutlet weak var lock_icon: UIImageView!
+    
     var jobTags = [JobTag]()
     
     override func awakeFromNib() {

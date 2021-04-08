@@ -609,12 +609,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.pickedUsers.removeAll()
         let pub_users = self.getSharedLocationUsersIfExists()
         var picked_users = [String]()
+        var picked_users_and_ratings: [users_and_ratings] = [users_and_ratings]()
         
         if selectedTags.isEmpty{
             for item in pub_users{
                 picked_users.append(item.uid!)
             }
-            return picked_users
+            let sorted_users = picked_users.sorted { getRatingsMatchingPickedTags($0).count > getRatingsMatchingPickedTags($1).count }
+           
+            return sorted_users
         }
         
         for user in pub_users{
@@ -632,12 +635,19 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             for user in selectedUsers{
                 if(!picked_users.contains(user)){
                     picked_users.append(user)
+                    
                 }
             }
         }
         
+        let sorted_users = picked_users.sorted { getRatingsMatchingPickedTags($0).count > getRatingsMatchingPickedTags($1).count }
         
-        return picked_users
+        return sorted_users
+    }
+    
+    struct users_and_ratings{
+        var uid  = ""
+        var rating = 0
     }
     
     func getRatingsMatchingPickedTags(_ user_id: String) -> [Rating]{
@@ -4684,10 +4694,84 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // MARK: -App Public Data Listeners
     //this might be super expensive...
     func listenForGlobalTagData(country: String, last_update_time: Int){
-        var globalTagRef = db
+//        var globalTagRef = db
+//            .collection(constants.jobs_ref)
+//            .document(country)
+//            .collection(constants.tags)
+//            .addSnapshotListener{querySnapshot, error in
+//                guard let snapshot = querySnapshot else {
+//                    print("Error fetching snapshots: \(error!)")
+//                    return
+//                }
+//
+//                snapshot.documentChanges.forEach { diff in
+//                    let tag = diff.document.data()["title"] as! String
+////                    print("loading tag: \(tag)")
+//                    var last_update = diff.document.data()["last_update"] as? Int
+//
+//
+////                    if last_update != nil {
+////                        if last_update! >= last_update_time {
+////                            self.listenForSpecificTagData(tag_title: tag, country: country)
+////                        }
+////                    }else{
+////                        self.listenForSpecificTagData(tag_title: tag, country: country)
+////                    }
+//
+//                    var current_time = Int64(round(NSDate().timeIntervalSince1970 * 1000))
+//
+//                    if last_update == nil {
+//                        last_update = 0
+//                    }
+//
+//                    var global_tag = self.getGlobalTagIfExists(tag_title: tag)
+//                    var old_last_update = global_tag?.last_update
+//                    if global_tag == nil {
+//                        global_tag = GlobalTag(context: self.context)
+//                        global_tag!.title = tag
+//                        global_tag!.country = country
+//                        old_last_update = Int64(last_update!)
+//                        global_tag!.last_update = Int64(last_update!)
+//                    }
+//
+//
+//
+//                    if (diff.type == .added) {
+////                        print("New item")
+//                        if self.setTagListeners[tag] == nil {
+//                            //just checking if we have at least one item to use
+//                            var t = self.getTagAssociateIfExists(tag_title: tag)
+//                            if t == nil {
+//                                self.listenForSpecificTagData(tag_title: tag, country: country)
+//                            }else if global_tag!.last_update < old_last_update! {
+//                                self.listenForSpecificTagData(tag_title: tag, country: country)
+//                            }
+//
+//                        }
+//                    }
+//                    if (diff.type == .modified) {
+////                        print("Modified item")
+//                    }
+//                    if (diff.type == .removed) {
+////                        print("Removed item")
+//                    }
+//
+//
+//                }
+//
+//                self.saveContext(self.constants.refresh_app)
+//            }
+        
+        
+        var now = Int64(round(NSDate().timeIntervalSince1970 * 1000))
+        var last_update_stored = self.getAppDataIfExists()!.global_tag_data_update_time
+        
+        
+        var globalTagDataRef = db
             .collection(constants.jobs_ref)
             .document(country)
-            .collection(constants.tags)
+            .collection(constants.tag_data)
+            .whereField("record_time", isGreaterThan: now)
             .addSnapshotListener{querySnapshot, error in
                 guard let snapshot = querySnapshot else {
                     print("Error fetching snapshots: \(error!)")
@@ -4695,64 +4779,90 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
                 
                 snapshot.documentChanges.forEach { diff in
-                    let tag = diff.document.data()["title"] as! String
-//                    print("loading tag: \(tag)")
-                    var last_update = diff.document.data()["last_update"] as? Int
+                    let job_id = diff.document.data()["job_id"] as! String
                     
+                    let pay = diff.document.data()["pay"] as! [String: AnyObject]
+                    let pay_amount = pay["amount"] as! Int
+                    let pay_currency = pay["currency"] as! String
                     
-//                    if last_update != nil {
-//                        if last_update! >= last_update_time {
-//                            self.listenForSpecificTagData(tag_title: tag, country: country)
-//                        }
-//                    }else{
-//                        self.listenForSpecificTagData(tag_title: tag, country: country)
-//                    }
+                    let work_duration = diff.document.data()["work_duration"] as! String
+                    let no_of_days = diff.document.data()["no_of_days"] as! Int
                     
-                    var current_time = Int64(round(NSDate().timeIntervalSince1970 * 1000))
+                    let location = diff.document.data()["location"] as! [String: AnyObject]
+                    let location_latitude = location["latitude"] as! Double
+                    let location_longitude = location["longitude"] as! Double
+                    let location_description = location["description"] as! String
                     
-                    if last_update == nil {
-                        last_update = 0
-                    }
+                    let record_time = diff.document.data()["record_time"] as! Int
+                    let tag_associates = diff.document.data()["tag_associates"] as! String
                     
-                    var global_tag = self.getGlobalTagIfExists(tag_title: tag)
-                    var old_last_update = global_tag?.last_update
-                    if global_tag == nil {
-                        global_tag = GlobalTag(context: self.context)
-                        global_tag!.title = tag
-                        global_tag!.country = country
-                        old_last_update = Int64(last_update!)
-                        global_tag!.last_update = Int64(last_update!)
-                    }
-                
-                
+                    var its_tags = self.rip_tag_associates(tag_associates: tag_associates)
                     
-                    if (diff.type == .added) {
-//                        print("New item")
-                        if self.setTagListeners[tag] == nil {
-                            //just checking if we have at least one item to use
-                            var t = self.getTagAssociateIfExists(tag_title: tag)
-                            if t == nil {
-                                self.listenForSpecificTagData(tag_title: tag, country: country)
-                            }else if global_tag!.last_update < old_last_update! {
-                                self.listenForSpecificTagData(tag_title: tag, country: country)
-                            }
-                            
+                    for tag in its_tags{
+                        var global_tag = self.getGlobalTagIfExists(tag_title: tag)
+                        var old_last_update = global_tag?.last_update
+                        if global_tag == nil {
+                            global_tag = GlobalTag(context: self.context)
+                            global_tag!.title = tag
+                            global_tag!.country = country
+                            old_last_update = Int64(now)
+                            global_tag!.last_update = Int64(now)
                         }
-                    }
-                    if (diff.type == .modified) {
-//                        print("Modified item")
-                    }
-                    if (diff.type == .removed) {
-//                        print("Removed item")
+                        
+                        var the_tag = self.getTagAssociateIfExists(tag_title: tag, job_id: job_id)
+                        
+                        if(the_tag == nil){
+                            print("creating new global tag: \(tag) for job: \(job_id)")
+                            the_tag = JobTag(context: self.context)
+                        }else{
+                            print("global tag : \(tag) for job: \(job_id) already exists, so removing from associates")
+                            global_tag!.removeFromTag_associates(the_tag!)
+                        }
+                        
+                        var t = the_tag!
+                        
+                        t.title = tag
+                        t.job_id = job_id
+                        t.global = true
+                        t.pay_amount = Int64(pay_amount)
+                        t.pay_currency = pay_currency
+                        t.work_duration = work_duration
+                        t.no_of_days = Int64(no_of_days)
+                        t.location_latitude = location_latitude
+                        t.location_longitude = location_longitude
+                        t.location_description = location_description
+                        t.record_time = Int64(record_time)
+                        t.tag_associates = tag_associates
+                        
+    //                    if !g_tag_associates.contains(t!){
+                        global_tag!.addToTag_associates(t)
+                        
                     }
                     
                     
                 }
-                
                 self.saveContext(self.constants.refresh_app)
+                
             }
         
-        setPublicDataListeners.append(globalTagRef)
+        
+        setPublicDataListeners.append(globalTagDataRef)
+    }
+    
+    func rip_tag_associates(tag_associates: String) -> [String]{
+        let decoder = JSONDecoder()
+        let jsonData = tag_associates.data(using: .utf8)!
+        var other_tags: [String] = [String]()
+        do{
+            let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
+            for item in tags{
+                other_tags.append(item.tag_title)
+            }
+        }catch {
+            
+        }
+        
+        return other_tags
     }
     
     // MARK: -Specific Tag item Listeners
@@ -5277,7 +5387,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    func getTagAssociateIfExists(tag_title: String) -> JobTag? {
+    func getTagAssociateIfExists(tag_title: String, job_id: String) -> JobTag? {
         do{
             let request = JobTag.fetchRequest() as NSFetchRequest<JobTag>
             let predic = NSPredicate(format: "title == %@ && global == \(NSNumber(value: true))", tag_title)
@@ -5286,7 +5396,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             let items = try context.fetch(request)
             
             if(!items.isEmpty){
-                return items[0]
+                for tag in items{
+                    if tag.job_id! == job_id {
+                        return tag
+                    }
+                }
             }
             
         }catch {

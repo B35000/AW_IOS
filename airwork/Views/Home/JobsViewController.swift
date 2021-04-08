@@ -279,7 +279,14 @@ class JobsViewController: UIViewController, UITableViewDelegate, UITableViewData
         for tag in job.tags! {
             cell.jobTags.append(tag as! JobTag)
         }
-        cell.jobTitleLabel.text = job.job_title!
+        
+        if job.is_job_private{
+            cell.lock_icon.isHidden = false
+            cell.jobTitleLabel.text = "   \(job.job_title!)"
+        }else{
+            cell.lock_icon.isHidden = true
+            cell.jobTitleLabel.text = job.job_title!
+        }
         
         var hr = Int(job.time_hour)
         if job.am_pm == "PM" {

@@ -57,6 +57,7 @@ struct Constants{
     let qualification_document = "qualification_document"
     let pay_perc = 0.055
     let job_document = "job_document"
+    let tag_data = "tag_data"
     
     
     func randomString(_ length: Int) -> String {

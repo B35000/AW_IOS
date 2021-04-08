@@ -484,8 +484,8 @@ class EditJobViewController: UIViewController, UICollectionViewDataSource, UICol
             "pay" : pay,
             "time" : time,
             "images" : job_image_list_json,
-            "taken_down": isJobOk,
-            "auto_taken_down" : isJobOk
+            "taken_down": !isJobOk,
+            "auto_taken_down" : !isJobOk
         ]
         
         print("writing changes to db")
@@ -503,6 +503,26 @@ class EditJobViewController: UIViewController, UICollectionViewDataSource, UICol
                     self.navigationController?.popViewController(animated: true)
                 }
             }
+        
+        if picked_doc != nil {
+            let storageRef = Storage.storage().reference()
+            let ref = storageRef.child(constants.users_data)
+                .child(uid)
+                .child(constants.job_document)
+                .child("\(job!.job_id!).pdf")
+            
+            let uploadTask = ref.putData(picked_doc!, metadata: nil) { (metadata, error) in
+              guard let metadata = metadata else {
+                // Uh-oh, an error occurred!
+                return
+              }
+              // Metadata contains file metadata such as size, content-type.
+              let size = metadata.size
+                print("set doc in db")
+                self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: self.picked_doc!, author_id: uid)
+            }
+        }
+        
     }
     
     /*

@@ -107,6 +107,8 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
     @IBOutlet weak var verifyEmailContainer: UIView!
     
     @IBOutlet weak var openPendingRatingsButton: UIButton!
+    @IBOutlet weak var ViewAttachedDoc: UIView!
+    @IBOutlet weak var lock_icon: UIImageView!
     
     
     var job_id: String = ""
@@ -498,7 +500,13 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
         jobImagesCollectionView.dataSource = self
         
         //set job title
-        titleLabel.text = job!.job_title!
+        if job!.is_job_private{
+            titleLabel.text = "    \(job!.job_title!)"
+            lock_icon.isHidden = false
+        }else{
+            titleLabel.text = job!.job_title!
+            lock_icon.isHidden = true
+        }
         detailsLabel.text = job!.job_details!
         var views = self.getJobViewsIfExists(job_id: job!.job_id!)
         var applicants = self.getJobApplicantsIfExists(job_id: job!.job_id!)
@@ -1022,6 +1030,35 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
         
         applicantsImagesCollection.delegate = self
         applicantsImagesCollection.dataSource = self
+        
+        
+        let uploader = job!.uploader_id!
+        let storageRef = Storage.storage().reference()
+        
+        let ref = storageRef.child(constants.users_data)
+            .child(uploader)
+            .child(constants.job_document)
+            .child("\(job_id).pdf")
+        
+        ViewAttachedDoc.isHidden = true
+        if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+            let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+            ViewAttachedDoc.isHidden = false
+        }else{
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                if let error = error {
+                  // Uh-oh, an error occurred!
+                    print("loading doc from cloud failed \(error.localizedDescription)")
+                    self.ViewAttachedDoc.isHidden = true
+                } else {
+                  // Data for "images/island.jpg" is returned
+                    self.ViewAttachedDoc.isHidden = false
+                    
+                    self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: uploader)
+                }
+              }
+        }
+        
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -2195,6 +2232,21 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
             }
             
             pendingVC.hideSkipButton = true
+            
+        case "showPdfDoc":
+            guard let pdfVc = segue.destination as? ViewPdfViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            
+            let user_id = job!.uploader_id!
+            let storageRef = Storage.storage().reference()
+            
+            let ref = storageRef.child(constants.users_data)
+                .child(user_id)
+                .child(constants.job_document)
+                .child("\(job_id).pdf")
+            
+            pdfVc.picked_doc = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!.data
             
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")
