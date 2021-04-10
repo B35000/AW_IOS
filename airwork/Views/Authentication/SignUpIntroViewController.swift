@@ -63,6 +63,13 @@ class SignUpIntroViewController: UIViewController {
                 account.user_type = "user"
                 account.uid = uid
                 
+                account.phone = Phone(context: self.context)
+                account.phone?.country_currency = "KES"
+                account.phone?.country_name = account.country
+                account.phone?.country_name_code = "KE"
+                account.phone?.country_number_code = "+254"
+                account.phone?.digit_number = Int64(0)
+                
                 do{
                     try self.context.save()
                     self.hideLoadingScreen()

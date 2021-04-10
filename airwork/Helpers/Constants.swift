@@ -59,6 +59,8 @@ struct Constants{
     let job_document = "job_document"
     let tag_data = "tag_data"
     
+    let sign_in_broadcast = "sign_in_broadcast"
+    
     
     func randomString(_ length: Int) -> String {
 
@@ -74,6 +76,10 @@ struct Constants{
         }
 
         return randomString
+    }
+    
+    func get_now() -> Int64 {
+        return Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
     }
     
     func getResourceIfExists(data_id: String, context: NSManagedObjectContext) -> Resource?{

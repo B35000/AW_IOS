@@ -254,6 +254,7 @@ class SignUpPhoneViewController: UIViewController {
         let id = "HomeTabBarController"
     
         if isAlreadyAnon{
+            NotificationCenter.default.post(name: NSNotification.Name(Constants.init().sign_in_broadcast), object: "listener")
             dismiss(animated: true, completion: nil)
         }else{
             let homeViewController = storyboard?.instantiateViewController(identifier: id) as? UITabBarController

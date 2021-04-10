@@ -51,8 +51,12 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     
     func setDataInViews(){
         let me = Auth.auth().currentUser!.uid
-        let myAcc = getApplicantAccount(me)!
+        print("my uid ------------ \(me)")
+        
+        let myAcc = getAccountIfExists(uid: me)!
         let myRatings = getAccountRatings(me)
+        
+        print("my email --------- \(myAcc.email)")
         
         nameLabel.text = myAcc.name!
         emailLabel.text = myAcc.email
@@ -208,7 +212,18 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
         
         let UploadedJobsRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "UploadedJob")
         let UploadedJobsDeleteRequest = NSBatchDeleteRequest( fetchRequest: UploadedJobsRequest)
-
+        
+        
+        let GlobalTagRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "GlobalTag")
+        let GlobalTagDeleteRequest = NSBatchDeleteRequest( fetchRequest: GlobalTagRequest)
+        
+        
+        let JobTagRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "JobTag")
+        let JobTagDeleteRequest = NSBatchDeleteRequest( fetchRequest: JobTagRequest)
+        
+        let JobRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Job")
+        let JobDeleteRequest = NSBatchDeleteRequest( fetchRequest: JobRequest)
+            
         do{
             try context.execute(contactDeleteRequest)
             try context.execute(NotificationDeleteRequest)
@@ -219,7 +234,9 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
             try context.execute(PaymentDeleteRequest)
             try context.execute(ApplicationsDeleteRequest)
             try context.execute(UploadedJobsDeleteRequest)
-            
+            try context.execute(GlobalTagDeleteRequest)
+            try context.execute(JobTagDeleteRequest)
+            try context.execute(JobDeleteRequest)
             
             try Auth.auth().signOut()
             
@@ -272,6 +289,25 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     }
     
     
+    func getAccountIfExists(uid: String) -> Account? {
+        do{
+            let request = Account.fetchRequest() as NSFetchRequest<Account>
+            let predic = NSPredicate(format: "uid == %@", uid)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
     func getApplicantAccount(_ user_id: String) -> Account? {
         do{
             let request = Account.fetchRequest() as NSFetchRequest<Account>
@@ -282,6 +318,9 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
             let items = try context.fetch(request)
             
             if(!items.isEmpty){
+                for item in items {
+                    print("loaded account using \(user_id):--- \(item.email)")
+                }
                 return items[0]
             }
             

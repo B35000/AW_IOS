@@ -91,6 +91,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var hiddenViewPendingRatingsButton: UIButton!
     
     
+    @IBOutlet weak var settingsBarButton: UIBarButtonItem!
+    @IBOutlet weak var findMeImageView: UIImageView!
+    @IBOutlet weak var publicLocationView: UIView!
+    @IBOutlet weak var updateLocationContainer: CardView!
+    @IBOutlet weak var makePublicSwitch: UISwitch!
+    
+    
+    
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     let db = Firestore.firestore()
     var constants = Constants.init()
@@ -116,6 +124,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var myLong = 0.0
     var myLocationMarker: GMSMarker?
     var myLocationCircle: GMSCircle?
+    var myPubLocationMarker: GMSMarker?
     var addedMarkers = [String : GMSMarker]()
     var addedLines = [String : [GMSPolyline]]()
     
@@ -138,12 +147,59 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @objc func whenAppTerminated(){
         print("app is being terminated")
         removeFirebaseListeners()
+        self.locationManager.stopUpdatingLocation()
     }
     
     @objc func didGetNotification(_ notification: Notification){
 //        let text = notification.object as! String
         
     }
+    
+    @objc func didGetNotificationForSignIn(_ notification: Notification){
+        self.setUpViews()
+    }
+    
+    
+    
+    func when_refresh_app(){
+        self.setUpJobMap()
+        self.setUpQuickTags()
+    }
+    
+    func when_refresh_account(){
+        self.updateAppliedJobs()
+        self.updateViews()
+    }
+    
+    func when_refresh_job(){
+        
+        
+        if amIAirworker() {
+            let newJobs = self.getNewJobsIfExists()
+            new_jobs.removeAll()
+            
+            for item in newJobs{
+                if (isJobOk(job: item) && item.location_desc != nil && item.location_desc! != ""){
+                    new_jobs.append(item.job_id!)
+                }
+            }
+            
+            jobsCollectionView.delegate = self
+            jobsCollectionView.dataSource = self
+            
+            jobsCollectionView.reloadData()
+            
+            if new_jobs.isEmpty{
+                newJobIconsContainer.isHidden = true
+            }else{
+                newJobIconsContainer.isHidden = false
+            }
+        }
+        
+        
+    }
+    
+    
     
     @IBAction func whenHiddenSignUpButtonTapped(_ sender: Any) {
         self.hiddenSignUpButton.sendActions(for: .touchUpInside)
@@ -168,8 +224,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         setMyAccountDataListeners()
         listenForPublicLocationData()
         
+        NotificationCenter.default.addObserver(self, selector: #selector(didGetNotificationForSignIn(_:)), name: NSNotification.Name(rawValue: constants.sign_in_broadcast), object: nil)
         
         NotificationCenter.default.addObserver(self, selector: #selector(self.whenAppTerminated), name: UIApplication.willTerminateNotification, object:nil)
+        
+  
         
         NotificationCenter.default.addObserver(self, selector: #selector(didGetNotification(_:)), name: NSNotification.Name(rawValue: "name"), object: nil)
         
@@ -188,7 +247,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             setAccountInfo()
             
             newJobCardView.isHidden = true
-            appliedJobsContainer.isHidden = false
+//            appliedJobsContainer.isHidden = false
 //            jobsMapContainer.isHidden = false
             pickUserContainer.isHidden = true
             quickJobsContainer.isHidden = true
@@ -241,7 +300,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func updateViews(){
         pendingRatingsContainer.isHidden = true
         
-        
         if amIAirworker(){
             self.title = "Airworker"
             switchTitleLabel.text = "Switch To Airwork"
@@ -249,7 +307,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             setAccountInfo()
             
             newJobCardView.isHidden = true
-            appliedJobsContainer.isHidden = false
+//            appliedJobsContainer.isHidden = false
 //            jobsMapContainer.isHidden = false
             quickJobsContainer.isHidden = true
             myAccountContainer.isHidden = false
@@ -258,8 +316,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
 //            getUnpaidJobs()
 //            setUpJobMap()
-//            setUpAppliedJobs()
-            appliedJobsTableView.reloadData()
+            setUpAppliedJobs()
+//            appliedJobsTableView.reloadData()
             
         }else{
             self.title = "Home"
@@ -304,7 +362,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             app?.global_tag_data_update_time = Int64(time)
         }
         if account != nil {
-            
             self.verifyIdentityContainer.isHidden = true
             if Auth.auth().currentUser!.isAnonymous {
                 self.addCertificateContainer.isHidden = true
@@ -316,12 +373,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.hiddenSignUpButton2.isHidden = false
                 self.hiddenSignUpButton3.isHidden = false
                 self.hiddenSignUpButton4.isHidden = false
+                self.settingsBarButton.isEnabled = false
             }else{
                 self.createAccountContainer.isHidden = true
                 self.hiddenSignUpButton.isHidden = true
                 self.hiddenSignUpButton2.isHidden = true
                 self.hiddenSignUpButton3.isHidden = true
                 self.hiddenSignUpButton4.isHidden = true
+                self.settingsBarButton.isEnabled = true
                 
                 if amIAirworker(){
                     self.addCertificateContainer.isHidden = false
@@ -755,24 +814,27 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func getPubUsersLocation(_ user_id: String) -> LatLng? {
         var pub_user = self.getSharedLocationUserIfExists(user_id: user_id)
-        var json = pub_user!.loc_pack!
         
-        print("json : \(json)")
-        
-        let decoder = JSONDecoder()
-        let jsonData = json.data(using: .utf8)!
-        
-        do{
-            let shared_user_ld: location_packet =  try decoder.decode(location_packet.self, from: jsonData)
+        if pub_user != nil {
+            var json = pub_user!.loc_pack!
             
-            if !shared_user_ld.received_locations.isEmpty{
-                let picked_loc = shared_user_ld.received_locations[0].lat
+//            print("json : \(json)")
+            
+            let decoder = JSONDecoder()
+            let jsonData = json.data(using: .utf8)!
+            
+            do{
+                let shared_user_ld: location_packet =  try decoder.decode(location_packet.self, from: jsonData)
                 
-                return picked_loc
+                if !shared_user_ld.received_locations.isEmpty{
+                    let picked_loc = shared_user_ld.received_locations[0].lat
+                    
+                    return picked_loc
+                }
+                
+            }catch {
+                
             }
-            
-        }catch {
-            
         }
         
         return nil
@@ -858,11 +920,63 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
+    func uploadMyLocationData(){
+        if makePublicSwitch.isOn {
+            var loc_packet = location_packet()
+            for loc in my_locations{
+                var loc_item = Location_Item()
+                loc_item.lat = loc
+                loc_item.creation_time = Int(constants.get_now())
+                
+                loc_packet.received_locations.append(loc_item)
+            }
+            
+            loc_packet.location_desc = my_location_desc
+            
+            
+            //convert object to string
+            var loc_pack_json = ""
+            let encoder = JSONEncoder()
+            
+            
+            do {
+                let json_string = try encoder.encode(loc_packet)
+                loc_pack_json = String(data: json_string, encoding: .utf8)!
+                
+                var uid = Auth.auth().currentUser?.uid
+                let me = self.getAccountIfExists(uid: uid!)
+                let docData: [String: Any] = [
+                    "uid" : uid!,
+                    "loc_id" : uid!,
+                    "country" : me!.phone!.country_name!,
+                    "desc" : my_location_desc,
+                    "creation_time" : Int(constants.get_now()),
+                    "loc_pack" : loc_pack_json
+                ]
+                
+                db.collection(constants.public_locations)
+                    .document(uid!)
+                    .setData(docData)
+                
+            }catch {
+                print("error in converting pub loc data to string \(error.localizedDescription)")
+            }
+        
+        }else{
+            var uid = Auth.auth().currentUser?.uid
+            db.collection(constants.public_locations)
+                .document(uid!).delete()
+        }
+        
+    }
+    
+    
     
     
     
     // MARK: - Job Map Parts
     func setUpJobMap(){
+    
         if amIAirworker() {
             let newJobs = self.getNewJobsIfExists()
             new_jobs.removeAll()
@@ -876,6 +990,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
         }
         
+        self.updateLocationContainer.isHidden = true
+        if !amIAirworker(){
+            self.publicLocationView.isHidden = true
+        }
                 
         //lets load the map
         self.locationManager.requestAlwaysAuthorization()
@@ -910,6 +1028,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 mapView.layer.cornerRadius = 15
                 mapView.isUserInteractionEnabled = false
                 
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
                    // Code you want to be delayed
                     
@@ -932,52 +1051,244 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             }else{
                 newJobIconsContainer.isHidden = false
             }
+            
+            self.updateLocationContainer.isHidden = true
+            if my_location_desc == "" {
+                self.publicLocationView.isHidden = true
+            }
+            let tap = UITapGestureRecognizer(target: self, action: #selector(HomeViewController.whenMyLocationTapped))
+            findMeImageView.addGestureRecognizer(tap)
+            
+            let uid = Auth.auth().currentUser?.uid
+            
+            let my_pub_loc = self.getPubUsersLocation(uid!)
+            if my_pub_loc != nil {
+                makePublicSwitch.isOn = true
+            }else{
+                makePublicSwitch.isOn = false
+            }
+        }
+        
+        
+    }
+    
+    @IBAction func whenMakePublicSwitchTapped(_ sender: UISwitch) {
+        self.uploadMyLocationData()
+        self.setUpJobMap()
+    }
+    
+    @IBAction func updateLocationButtonTapped(_ sender: UIButton) {
+        self.uploadMyLocationData()
+        self.resetMap()
+        self.setUpJobMap()
+        
+    }
+    
+    @objc func whenMyLocationTapped(sender:UITapGestureRecognizer) {
+        print("show my location tapped ------------------------")
+        if myLat != 0.0 && myLong != 0.0 {
+            self.moveCamera(self.myLat, self.myLong)
+        }else{
+            self.setUpJobMap()
         }
     }
     
+    @IBAction func whenShowMyLocationButtonTapped(_ sender: Any) {
+        print("show my location tapped ------------------------")
+        if myLat != 0.0 && myLong != 0.0 {
+            self.moveCamera(self.myLat, self.myLong)
+        }else{
+            self.setUpJobMap()
+        }
+    }
+    
+    
+    func resetMap(){
+        self.locationManager.stopUpdatingLocation()
+        my_locations.removeAll()
+        my_location_desc = ""
+        self.myLat = 0.0
+        self.myLong = 0.0
+        
+        self.myLocationMarker?.map = nil
+        self.myLocationCircle?.map = nil
+        self.myPubLocationMarker?.map = nil
+        
+        let uid = Auth.auth().currentUser?.uid
+        if addedLines[uid!] != nil {
+            var path = addedLines[uid!]
+            for item in path! {
+                item.map = nil
+            }
+            path!.removeAll()
+            addedLines.removeValue(forKey: uid!)
+        }
+        
+        mapView.clear()
+    }
+    
+    
+    var my_locations: [LatLng] = [LatLng]()
+    var my_location_desc: String = ""
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
         print("locations = \(locValue.latitude) \(locValue.longitude)")
+        var lat = locValue.latitude
+        var lng = locValue.longitude
+        
+        if amIAirworker(){
+            lat = -1.286389
+            lng = 36.817223
+        }
         
         if amIAirworker(){
             if(self.myLat == 0.0){
-                self.myLat = -1.286389
-    //                locValue.latitude
-                self.myLong = 36.817223
-    //                locValue.longitude
+                self.findMeImageView.image = UIImage(named: "KnownLocation")
+                self.myLat =
+//                    -1.286389
+                    lat
+                self.myLong =
+//                    36.817223
+                    lng
                 
                 self.moveCamera(self.myLat, self.myLong)
                 self.setMyLocation(self.myLat, self.myLong)
                 self.addJobsOnMap()
+            
             }
-            self.myLat = -1.286389
-    //                locValue.latitude
-            self.myLong = 36.817223
-    //                locValue.longitude
+            self.myLat =
+//                -1.286389
+                    lat
+            self.myLong =
+//                36.817223
+                    lng
         }else{
             if(self.myLat == 0.0){
-                self.myLat = locValue.latitude
-                self.myLong = locValue.longitude
+                self.findMeImageView.image = UIImage(named: "KnownLocation")
+                self.myLat = lat
+                self.myLong = lng
                 
                 self.moveCamera(self.myLat, self.myLong)
                 self.setMyLocation(self.myLat, self.myLong)
                 self.setAllUsersOnMap()
             }
-            self.myLat = locValue.latitude
-            self.myLong = locValue.longitude
+            self.myLat = lat
+            self.myLong = lng
         }
+        
+        var loc = LatLng()
+        loc.latitude = self.myLat
+        loc.longitude = self.myLong
+        
+        if my_locations.count <= 3{
+            my_locations.append(loc)
+            if my_locations.count == 1 {
+                print("Loading location desc--------------------------------")
+                get_location_desc(self.myLat, self.myLong)
+            }
+        }else{
+            self.updateLocationContainer.isHidden = true
+            self.publicLocationView.isHidden = true
+            
+            if amIAirworker(){
+                self.publicLocationView.isHidden = false
+                let uid = Auth.auth().currentUser?.uid
+                
+                let my_pub_loc = self.getPubUsersLocation(uid!)
+                if my_pub_loc != nil {
+                    let coordinate₀ = CLLocation(latitude: myLat, longitude: myLong)
+                    let coordinate₁ = CLLocation(latitude: my_pub_loc!.latitude, longitude: my_pub_loc!.longitude)
+                    
+                    if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) > 100.0) {
+                        self.updateLocationContainer.isHidden = false
+                    }
+                }else{
+                    let uid = Auth.auth().currentUser?.uid
+                    if addedLines[uid!] != nil {
+                        var path = addedLines[uid!]
+                        for item in path! {
+                            item.map = nil
+                        }
+                        path!.removeAll()
+                        addedLines.removeValue(forKey: uid!)
+                    }
+                    self.myPubLocationMarker?.map = nil
+                }
+            }
+            
+        }
+        if amIAirworker(){
+            if !makePublicSwitch.isOn {
+                self.myLocationCircle?.radius = 100.0
+            }else{
+                self.myLocationCircle?.radius = 500.0
+            }
+        }
+    }
+    
+    
+    
+    func get_location_desc(_ lat: Double, _ lng: Double){
+        guard let filePath = Bundle.main.path(forResource: "maps-Info", ofType: "plist") else {
+              fatalError("Couldn't find file 'maps-Info.plist'.")
+            }
+            // 2
+            let plist = NSDictionary(contentsOfFile: filePath)
+            guard let value = plist?.object(forKey: "GEO_API_KEY") as? String else {
+              fatalError("Couldn't find key 'GEO_API_KEY' in 'maps-Info.plist'.")
+            }
+        
+        var url: String = "https://maps.googleapis.com/maps/api/geocode/json?latlng=\(lat),\(lng)&key=\(value)"
+        
+        var request : NSMutableURLRequest = NSMutableURLRequest()
+        request.url = NSURL(string: url) as URL?
+        request.httpMethod = "GET"
+
+        NSURLConnection.sendAsynchronousRequest(request as URLRequest, queue: OperationQueue(), completionHandler:{ (response:URLResponse!, data: Data!, error: Error!) -> Void in
+            var error: AutoreleasingUnsafeMutablePointer<NSError?>? = nil
+            do{
+                let jsonResult: NSDictionary! = try JSONSerialization.jsonObject(with: data, options:JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
+
+                if (jsonResult != nil) {
+                    // process jsonResult
+
+                    let results = jsonResult["results"] as! NSArray
+                    let result_title = (results[0] as! NSDictionary)["formatted_address"] as! String
+                    
+                    print(result_title)
+                    self.my_location_desc = result_title
+                
+                    
+                } else {
+                   // couldn't load JSON, look at error
+                }
+            }catch {
+            
+            }
+
+
+        })
     }
     
     func moveCamera(_ lat: Double,_ long: Double){
         mapView.animate(to: GMSCameraPosition(latitude: lat, longitude: long, zoom: 15))
     }
     
+    
     func setMyLocation(_ lat: Double,_ long: Double){
         var position = CLLocationCoordinate2DMake(lat, long)
         var marker = GMSMarker(position: position)
         
         let circleCenter = CLLocationCoordinate2D(latitude: lat, longitude: long)
-        let circle = GMSCircle(position: circleCenter, radius: 600)
+        
+        var rad = 500.0
+        if amIAirworker(){
+            if !makePublicSwitch.isOn {
+                rad = 200.0
+            }
+        }
+        
+        let circle = GMSCircle(position: circleCenter, radius: rad)
         
         circle.fillColor = UIColor(red: 113, green: 204, blue: 231, alpha: 0.1)
         circle.strokeColor = .none
@@ -985,11 +1296,114 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         circle.map = mapView
         
         marker.icon = UIImage(named: "MyLocationIcon")
+        marker.isFlat = true
         marker.map = mapView
         
         self.myLocationMarker = marker
         self.myLocationCircle = circle
     
+        if amIAirworker(){
+            let uid = Auth.auth().currentUser?.uid
+            
+            let my_pub_loc = self.getPubUsersLocation(uid!)
+            if my_pub_loc != nil {
+            
+                let coordinate₀ = CLLocation(latitude: myLat, longitude: myLong)
+                let coordinate₁ = CLLocation(latitude: my_pub_loc!.latitude, longitude: my_pub_loc!.longitude)
+                
+//                print("Loaded my public location --------------------- \(self.getDistance(loc1: coordinate₀, loc2: coordinate₁)) away")
+                if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) > 100.0) {
+                
+                    var pub_position = CLLocationCoordinate2DMake(my_pub_loc!.latitude, my_pub_loc!.longitude)
+                    var pub_marker = GMSMarker(position: pub_position)
+                    
+                    pub_marker.icon = UIImage(named: "PickedUserIcon")
+                    pub_marker.map = mapView
+                    myPubLocationMarker = pub_marker
+                    
+                    
+                    self.draw_line_to_my_pub_location()
+                }else{
+                    if addedLines[uid!] != nil {
+                        var path = addedLines[uid!]
+                        for item in path! {
+                            item.map = nil
+                        }
+                        path!.removeAll()
+                        addedLines.removeValue(forKey: uid!)
+                    }
+                    
+                    if myPubLocationMarker != nil {
+                        myPubLocationMarker?.map = nil
+                    }
+                }
+            }else{
+                print("my public location doesnt exist")
+            }
+        }
+    }
+    
+    func draw_line_to_my_pub_location(){
+        let uid = Auth.auth().currentUser!.uid
+        let my_pub_loc = self.getPubUsersLocation(uid)
+        var path = addedLines[uid]
+                
+        if path == nil {
+            var new_path = GMSMutablePath()
+            
+            new_path.add(CLLocationCoordinate2D(latitude: self.myLat, longitude: self.myLong))
+            new_path.add(CLLocationCoordinate2D(latitude: my_pub_loc!.latitude, longitude: my_pub_loc!.longitude))
+            
+            
+            var polyline_list = [GMSPolyline]()
+            
+            let polyline = GMSPolyline(path: new_path)
+            polyline.geodesic = true
+            let color = self.getLineColorForUser(job_id: uid)
+            polyline.strokeColor = color
+            polyline.strokeWidth = 3
+            polyline.map = mapView
+            
+            polyline_list.append(polyline)
+            self.addedLines[uid] = polyline_list
+            
+            let coordinate₀ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+            let coordinate₁ = CLLocation(latitude: my_pub_loc!.latitude, longitude: my_pub_loc!.longitude)
+            
+            if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) < self.MAX_DISTANCE_TRHESHOLD) {
+                //I only want to show directions for people close to me
+                self.getRoadPathToUser(uid, self.myLat, self.myLong, my_pub_loc!.latitude, my_pub_loc!.longitude)
+
+            }
+        }else{
+            print("removing drawn paths-------")
+//            for item in path! {
+//                item.map = nil
+//            }
+            
+            
+            let coordinate₀ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+            let coordinate₁ = CLLocation(latitude: my_pub_loc!.latitude, longitude: my_pub_loc!.longitude)
+            
+            if (self.getDistance(loc1: coordinate₀, loc2: coordinate₁) < self.MAX_DISTANCE_TRHESHOLD) {
+                //I only want to show directions for people close to me
+                self.getRoadPathToUser(uid, self.myLat, self.myLong, my_pub_loc!.latitude, my_pub_loc!.longitude)
+                self.runAnimationForDirection(path!)
+            }
+        }
+        
+
+        
+        var bounds = GMSCoordinateBounds()
+        var position = CLLocationCoordinate2DMake(self.myLat, self.myLong)
+        var position2 = CLLocationCoordinate2DMake(my_pub_loc!.latitude, my_pub_loc!.longitude)
+        bounds = bounds.includingCoordinate(position)
+        bounds = bounds.includingCoordinate(position2)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            let update = GMSCameraUpdate.fit(bounds, withPadding: 130)
+            self.mapView.animate(with: update)
+        }
     }
     
     func addJobsOnMap(){
@@ -1244,6 +1658,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         let job = self.getJobIfExists(job_id: job_id)
         var applied_users = [String]()
         var selected_users = [String]()
+        
+        if job_id == me {
+            return color
+        }
         
         if job!.selected_workers != nil {
             var selected_users_json = job!.selected_workers!
@@ -2023,7 +2441,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         print("applied jobs loading")
         let my_applied_job_objs = self.getAppliedJobsIfExists()
         for item in my_applied_job_objs{
-            my_applied_jobs.append(self.getJobIfExists(job_id: item.job_id!)!)
+            if self.getJobIfExists(job_id: item.job_id!) != nil {
+                my_applied_jobs.append(self.getJobIfExists(job_id: item.job_id!)!)
+            }
         }
         
         print("applied jobs \(my_applied_jobs.count)")
@@ -2031,6 +2451,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         appliedJobsTableView.delegate = self
         appliedJobsTableView.dataSource = self
         appliedJobsTableView.reloadData()
+        
+        if my_applied_jobs.isEmpty {
+            appliedJobsContainer.isHidden = true
+        }else{
+            appliedJobsContainer.isHidden = false
+        }
     }
     
     func setUpQuickJobs(){
@@ -2138,7 +2564,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         my_applied_jobs.removeAll()
         let my_applied_job_objs = self.getAppliedJobsIfExists()
         for item in my_applied_job_objs{
-            my_applied_jobs.append(self.getJobIfExists(job_id: item.job_id!)!)
+            if self.getJobIfExists(job_id: item.job_id!) != nil {
+                my_applied_jobs.append(self.getJobIfExists(job_id: item.job_id!)!)
+            }
         }
         
         appliedJobsTableView.reloadData()
@@ -2749,6 +3177,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         clear_data_for_account_switch()
         saveContext(constants.swapped_account_type)
         removeFirebaseListeners()
+        resetMap()
         setUpViews()
         
         homePageScrollView.setContentOffset(.zero, animated: false)
@@ -3126,13 +3555,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 let phone_verification_obj = data["phone_verification_obj"] as? String
                 let sign_up_time = data["sign_up_time"] as! Int
                 let user_type = data["user_type"] as! String
+                let scan_id_data = data["scan_id_data"] as? String
                 
-//                print(email_vo)
-//                print(email)
+                print("uid:--------- \(uid)")
+                print(email_vo)
+                print(email)
 //                print("sign up time \(sign_up_time)")
                 
                 var account = self.getAccountIfExists(uid: uid)
-                print("locally stored email \(account?.email)")
+                print("----------------locally stored email \(account?.email)")
                 if account == nil {
                     account = Account(context: self.context)
                 }
@@ -3143,10 +3574,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 account?.language = language
                 account?.name = name
                 account?.phone_verification_obj = phone_verification_obj
+                account?.scan_id_data = scan_id_data
                 account?.sign_up_time = Int64(sign_up_time)
                 account?.user_type = user_type
                 account?.uid = uid
-                                
+                      
+                
+                
                 
                 var app = self.getAppDataIfExists()
                 let time = Int(round(NSDate().timeIntervalSince1970 * 1000))
@@ -3155,6 +3589,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     app?.global_tag_data_update_time = Int64(time)
                 }
                 self.saveContext(self.constants.refresh_app)
+                
+                
+                var updated_account = self.getAccountIfExists(uid: uid)
+                print("----------------updated stored email \(updated_account?.email)")
+                
                 
                 let uid = Auth.auth().currentUser!.uid
                 
@@ -3946,7 +4385,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
 //                print("loaded contact email: \(email)")
                 
-                var account = self.getAccountIfExists(uid: uid)
+                var account = self.getAccountIfExists(uid: user_id)
                 if account == nil {
                     account = Account(context: self.context)
                 }
@@ -3959,7 +4398,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 account?.phone_verification_obj = phone_verification_obj
                 account?.sign_up_time = Int64(sign_up_time)
                 account?.user_type = user_type
-                account?.uid = uid
+                account?.uid = user_id
                 account?.scan_id_data = scan_id_data
                 
                 self.saveContext(self.constants.refresh_account)
@@ -3987,10 +4426,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
 //                print("loaded contact phone: \(digit_number)")
                 
-                var account = self.getAccountIfExists(uid: uid)
+                var account = self.getAccountIfExists(uid: user_id)
                 if account == nil {
                     account = Account(context: self.context)
-                    account?.uid = uid
+                    account?.uid = user_id
                 }
                 if account?.phone == nil {
                     account?.phone = Phone(context: self.context)
@@ -4694,78 +5133,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // MARK: -App Public Data Listeners
     //this might be super expensive...
     func listenForGlobalTagData(country: String, last_update_time: Int){
-//        var globalTagRef = db
-//            .collection(constants.jobs_ref)
-//            .document(country)
-//            .collection(constants.tags)
-//            .addSnapshotListener{querySnapshot, error in
-//                guard let snapshot = querySnapshot else {
-//                    print("Error fetching snapshots: \(error!)")
-//                    return
-//                }
-//
-//                snapshot.documentChanges.forEach { diff in
-//                    let tag = diff.document.data()["title"] as! String
-////                    print("loading tag: \(tag)")
-//                    var last_update = diff.document.data()["last_update"] as? Int
-//
-//
-////                    if last_update != nil {
-////                        if last_update! >= last_update_time {
-////                            self.listenForSpecificTagData(tag_title: tag, country: country)
-////                        }
-////                    }else{
-////                        self.listenForSpecificTagData(tag_title: tag, country: country)
-////                    }
-//
-//                    var current_time = Int64(round(NSDate().timeIntervalSince1970 * 1000))
-//
-//                    if last_update == nil {
-//                        last_update = 0
-//                    }
-//
-//                    var global_tag = self.getGlobalTagIfExists(tag_title: tag)
-//                    var old_last_update = global_tag?.last_update
-//                    if global_tag == nil {
-//                        global_tag = GlobalTag(context: self.context)
-//                        global_tag!.title = tag
-//                        global_tag!.country = country
-//                        old_last_update = Int64(last_update!)
-//                        global_tag!.last_update = Int64(last_update!)
-//                    }
-//
-//
-//
-//                    if (diff.type == .added) {
-////                        print("New item")
-//                        if self.setTagListeners[tag] == nil {
-//                            //just checking if we have at least one item to use
-//                            var t = self.getTagAssociateIfExists(tag_title: tag)
-//                            if t == nil {
-//                                self.listenForSpecificTagData(tag_title: tag, country: country)
-//                            }else if global_tag!.last_update < old_last_update! {
-//                                self.listenForSpecificTagData(tag_title: tag, country: country)
-//                            }
-//
-//                        }
-//                    }
-//                    if (diff.type == .modified) {
-////                        print("Modified item")
-//                    }
-//                    if (diff.type == .removed) {
-////                        print("Removed item")
-//                    }
-//
-//
-//                }
-//
-//                self.saveContext(self.constants.refresh_app)
-//            }
-        
-        
+    
         var now = Int64(round(NSDate().timeIntervalSince1970 * 1000))
         var last_update_stored = self.getAppDataIfExists()!.global_tag_data_update_time
         
+        let all_g_tags = self.getGlobalTagsIfExists()
+        if all_g_tags.isEmpty{
+            now = 0
+        }
         
         var globalTagDataRef = db
             .collection(constants.jobs_ref)
@@ -4976,7 +5351,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     if (diff.type == .added) {
 //                        print("New item")
                         
-                        if !self.setOtherAccountListeners.keys.contains(uid) {
+                        if !self.setOtherAccountListeners.keys.contains(uid) && uid != Auth.auth().currentUser!.uid {
                             self.listenForAnotherUserInfo(user_id: uid)
                         }
                     }
@@ -4985,9 +5360,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     }
                     if (diff.type == .removed) {
 //                        print("Removed item")
+                        self.context.delete(public_user!)
                     }
                 }
                 
+                self.saveContext(self.constants.refresh_app)
                 print("loaded \(snapshot.documentChanges.count) public accounts")
             }
         
@@ -5086,9 +5463,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             NotificationCenter.default.post(name: NSNotification.Name(notification_name), object: "listener")
             
             if notification_name == constants.refresh_account{
-                self.updateAppliedJobs()
-                self.updateViews()
+                self.when_refresh_account()
             }
+            
+            if notification_name == constants.refresh_app{
+                self.when_refresh_app()
+            }
+            
+            if notification_name == constants.refresh_job{
+                self.when_refresh_job()
+            }
+            
         }catch{
             
         }
@@ -5438,7 +5823,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         return nil
     }
     
-    
     func getJobApplicationIfExists(job_id: String, user_id: String) -> JobApplications? {
         do{
             let request = JobApplications.fetchRequest() as NSFetchRequest<JobApplications>
@@ -5462,7 +5846,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         return nil
     }
-    
     
     func getAppliedJobIfExists(job_id: String) -> AppliedJob? {
         do{
@@ -5548,17 +5931,19 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         for item in ratings {
             print("filtering rating:-------------> \(item.rating_id!)")
             let job_id = item.job_id
+            
             let job = self.getJobIfExists(job_id: job_id!)
-
-            var req_id_format = "\(job!.uploader_id!)\(job_id!)"
-            if amIAirworker(){
-                var unreq_id_format = "\(job_id!)"
-                if (item.rating_id! != unreq_id_format && job!.uploader_id! != my_id){
-                    filtered_items.append(item)
-                }
-            }else{
-                if item.rating_id! == req_id_format{
-                    filtered_items.append(item)
+            if job != nil {
+                var req_id_format = "\(job!.uploader_id!)\(job_id!)"
+                if amIAirworker(){
+                    var unreq_id_format = "\(job_id!)"
+                    if (item.rating_id! != unreq_id_format && job!.uploader_id! != my_id){
+                        filtered_items.append(item)
+                    }
+                }else{
+                    if item.rating_id! == req_id_format{
+                        filtered_items.append(item)
+                    }
                 }
             }
         }
