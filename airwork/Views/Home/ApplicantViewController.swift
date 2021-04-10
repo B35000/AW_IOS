@@ -201,7 +201,7 @@ class ApplicantViewController: UIViewController, CLLocationManagerDelegate {
         if (applicant.application_pay_amount == 0) {
             amountLabel.text = "\(job.pay_currency!)  \(job.pay_amount)"
         }else{
-            amountLabel.text = "\(applicant.application_pay_currency)  \(applicant.application_pay_amount)"
+            amountLabel.text = "\(applicant.application_pay_currency!)  \(applicant.application_pay_amount)"
             
             amountTitleLabel.text = "For the amount:"
         }

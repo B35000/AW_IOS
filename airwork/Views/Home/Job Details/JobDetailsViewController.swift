@@ -203,7 +203,7 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
             return false
         }
         
-        if (self.isEmailVerified()){
+        if (!self.isEmailVerified()){
             verifyEmailContainer.isHidden = false
             return false
         }
@@ -227,8 +227,16 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
     
     func isEmailVerified() -> Bool{
         let me = Auth.auth().currentUser!
+        let my_acc = self.getApplicantAccount(user_id: me.uid)
         me.reload { (e: Error?) in
             
+        }
+        
+        print("email vo: ------- \(my_acc!.email_verification_obj)")
+        
+        if my_acc!.email_verification_obj != nil && my_acc!.email_verification_obj! != "" {
+            print("returning true!!")
+            return true
         }
         
         return me.isEmailVerified
@@ -2581,7 +2589,7 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
                     filtered_items.append(item)
                 }
             }else{
-                if item.rating_id! == req_id_format{
+                if item.rating_id! != req_id_format{
                     filtered_items.append(item)
                 }
             }

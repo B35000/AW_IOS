@@ -215,6 +215,9 @@ class ContactDetailViewController: UIViewController, UICollectionViewDelegate, U
         }
         
         jobAmountLabel.text = "\(job!.pay_currency!) \(job!.pay_amount) Quoted."
+        if job!.pay_amount == 0 {
+            jobAmountLabel.text = ""
+        }
         
         last_job_id = job!.job_id!
         

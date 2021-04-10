@@ -83,7 +83,7 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
     func getNotificationsIfExists() -> [Notification] {
         do{
             let request = Notification.fetchRequest() as NSFetchRequest<Notification>
-            let sortDesc = NSSortDescriptor(key: "time", ascending: true)
+            let sortDesc = NSSortDescriptor(key: "time", ascending: false)
             request.sortDescriptors = [sortDesc]
             
             let items = try context.fetch(request)

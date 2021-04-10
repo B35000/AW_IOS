@@ -69,10 +69,11 @@ class PaymentInitiatorViewController: UIViewController {
     
     func startMpesaPayments(){
         showLoadingScreen()
+        payment_total = 10
         self.makingRequestLabel.text = "Making a payment request!"
         var my_id = Auth.auth().currentUser!.uid
         var my_acc = self.getApplicantAccount(user_id: my_id)
-        var my_num = ("\(my_acc!.phone!.country_number_code)\(my_acc!.phone!.digit_number)").replacingOccurrences(of: "+", with: "")
+        var my_num = ("\(my_acc!.phone!.country_number_code!)\(my_acc!.phone!.digit_number)").replacingOccurrences(of: "+", with: "")
         
         
         
