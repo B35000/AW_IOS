@@ -9,5 +9,6 @@ import UIKit
 
 class NewJobItemCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var jobIconImage: UIImageView!
+    @IBOutlet weak var ratingsLabel: UILabel!
     
 }

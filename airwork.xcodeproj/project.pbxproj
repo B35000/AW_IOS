@@ -70,6 +70,10 @@
 		436B665F25A4355700AA3C75 /* style.json in Resources */ = {isa = PBXBuildFile; fileRef = 436B665E25A4355700AA3C75 /* style.json */; };
 		43784B9D259B879600CA65A5 /* SpinnerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43784B9C259B879600CA65A5 /* SpinnerViewController.swift */; };
 		43784BA3259B8DF600CA65A5 /* ConnectionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43784BA2259B8DF600CA65A5 /* ConnectionHelper.swift */; };
+		437921F42623EC3D00C3E647 /* StartInviteUserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437921F32623EC3D00C3E647 /* StartInviteUserViewController.swift */; };
+		437921FC2623ECCB00C3E647 /* NewLinkViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437921FB2623ECCB00C3E647 /* NewLinkViewController.swift */; };
+		437922012623ED1600C3E647 /* StartJoinAirworkerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437922002623ED1600C3E647 /* StartJoinAirworkerViewController.swift */; };
+		437922062623ED5900C3E647 /* AddLinkViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437922052623ED5900C3E647 /* AddLinkViewController.swift */; };
 		43840838259A459C00FA73B9 /* SignUpPhoneViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43840837259A459C00FA73B9 /* SignUpPhoneViewController.swift */; };
 		4386828B259B185E0003288B /* SignUpIntroViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4386828A259B185E0003288B /* SignUpIntroViewController.swift */; };
 		43868290259B18910003288B /* SignUpNameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4386828F259B18910003288B /* SignUpNameViewController.swift */; };
@@ -128,6 +132,8 @@
 		43B7603A25DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43B7603925DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift */; };
 		43BA4D9F2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BA4D9E2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift */; };
 		43BB7DE62607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BB7DE52607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift */; };
+		43C125F72624041600DE242D /* Invite+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C125F62624041600DE242D /* Invite+CoreDataClass.swift */; };
+		43C125F82624041600DE242D /* Invite+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C125F52624041600DE242D /* Invite+CoreDataProperties.swift */; };
 		43C73AA925E35E3D00384F08 /* QuickJobViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C73AA825E35E3D00384F08 /* QuickJobViewController.swift */; };
 		43C9C38025A20D8800F26F6C /* NewJobTagsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C9C37F25A20D8800F26F6C /* NewJobTagsViewController.swift */; };
 		43C9C38525A20E1100F26F6C /* DateTimeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C9C38425A20E1100F26F6C /* DateTimeViewController.swift */; };
@@ -245,6 +251,10 @@
 		436B665E25A4355700AA3C75 /* style.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = style.json; sourceTree = "<group>"; };
 		43784B9C259B879600CA65A5 /* SpinnerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpinnerViewController.swift; sourceTree = "<group>"; };
 		43784BA2259B8DF600CA65A5 /* ConnectionHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionHelper.swift; sourceTree = "<group>"; };
+		437921F32623EC3D00C3E647 /* StartInviteUserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartInviteUserViewController.swift; sourceTree = "<group>"; };
+		437921FB2623ECCB00C3E647 /* NewLinkViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewLinkViewController.swift; sourceTree = "<group>"; };
+		437922002623ED1600C3E647 /* StartJoinAirworkerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartJoinAirworkerViewController.swift; sourceTree = "<group>"; };
+		437922052623ED5900C3E647 /* AddLinkViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddLinkViewController.swift; sourceTree = "<group>"; };
 		43840837259A459C00FA73B9 /* SignUpPhoneViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpPhoneViewController.swift; sourceTree = "<group>"; };
 		4386828A259B185E0003288B /* SignUpIntroViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpIntroViewController.swift; sourceTree = "<group>"; };
 		4386828F259B18910003288B /* SignUpNameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpNameViewController.swift; sourceTree = "<group>"; };
@@ -303,6 +313,8 @@
 		43B7603925DA320E00FFF716 /* PickedUserTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickedUserTagCollectionViewCell.swift; sourceTree = "<group>"; };
 		43BA4D9E2616BDCE00C5DEEF /* QuickUserCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickUserCollectionViewCell.swift; sourceTree = "<group>"; };
 		43BB7DE52607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickTagJobCollectionViewCell.swift; sourceTree = "<group>"; };
+		43C125F52624041600DE242D /* Invite+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Invite+CoreDataProperties.swift"; path = "/Users/bry/Documents/Work/ios_airwork/airwork/Models/Invite+CoreDataProperties.swift"; sourceTree = "<absolute>"; };
+		43C125F62624041600DE242D /* Invite+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Invite+CoreDataClass.swift"; path = "/Users/bry/Documents/Work/ios_airwork/airwork/Models/Invite+CoreDataClass.swift"; sourceTree = "<absolute>"; };
 		43C73AA825E35E3D00384F08 /* QuickJobViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickJobViewController.swift; sourceTree = "<group>"; };
 		43C9C37F25A20D8800F26F6C /* NewJobTagsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewJobTagsViewController.swift; sourceTree = "<group>"; };
 		43C9C38425A20E1100F26F6C /* DateTimeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateTimeViewController.swift; sourceTree = "<group>"; };
@@ -541,6 +553,17 @@
 			path = Helpers;
 			sourceTree = "<group>";
 		};
+		437921F22623EC0800C3E647 /* InviteUser */ = {
+			isa = PBXGroup;
+			children = (
+				437921F32623EC3D00C3E647 /* StartInviteUserViewController.swift */,
+				437921FB2623ECCB00C3E647 /* NewLinkViewController.swift */,
+				437922002623ED1600C3E647 /* StartJoinAirworkerViewController.swift */,
+				437922052623ED5900C3E647 /* AddLinkViewController.swift */,
+			);
+			path = InviteUser;
+			sourceTree = "<group>";
+		};
 		43868283259B17AA0003288B /* Authentication */ = {
 			isa = PBXGroup;
 			children = (
@@ -613,6 +636,8 @@
 		43B0E00B259DD3B700A94E09 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				43C125F62624041600DE242D /* Invite+CoreDataClass.swift */,
+				43C125F52624041600DE242D /* Invite+CoreDataProperties.swift */,
 				4316726826117E3000C29AE5 /* Resource+CoreDataClass.swift */,
 				4316726726117E2F00C29AE5 /* Resource+CoreDataProperties.swift */,
 				43B1473125E4B1F000FE02EA /* JobPayment+CoreDataClass.swift */,
@@ -729,6 +754,7 @@
 				4386CB5C26018BCD00687AE0 /* ID Scanners */,
 				439A1AE4260A5C45007BCCB9 /* Add Skill */,
 				430FB5A3260436280043D8EE /* Payment */,
+				437921F22623EC0800C3E647 /* InviteUser */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -1073,6 +1099,7 @@
 				43B580CC25A129FA0025C824 /* NewJobNavigationViewController.swift in Sources */,
 				430E288625DC1C8800A76ACB /* SharedLocationUser+CoreDataClass.swift in Sources */,
 				434A5F4125946B650061D2D2 /* AppDelegate.swift in Sources */,
+				43C125F82624041600DE242D /* Invite+CoreDataProperties.swift in Sources */,
 				43B1470825E48EF700FE02EA /* AppData+CoreDataClass.swift in Sources */,
 				43B0E03A259DE67000A94E09 /* Notification+CoreDataClass copy.swift in Sources */,
 				43BB7DE62607B1F200BA3806 /* QuickTagJobCollectionViewCell.swift in Sources */,
@@ -1081,6 +1108,7 @@
 				430FB5AD260437320043D8EE /* PaymentInitiatorViewController.swift in Sources */,
 				43A2361625A6A120003CB7A7 /* FlaggedWord+CoreDataClass.swift in Sources */,
 				43E0D12325B8211F009C7F96 /* RatingTableViewCell.swift in Sources */,
+				437921F42623EC3D00C3E647 /* StartInviteUserViewController.swift in Sources */,
 				439A1AF6260A6AAF007BCCB9 /* AddSkillImageCollectionViewCell.swift in Sources */,
 				43207CDB25D7930D004B4A9C /* PendingRatingsViewController.swift in Sources */,
 				4308BD7525F2C3AB00A866B7 /* QuickJobCollectionViewCell.swift in Sources */,
@@ -1091,6 +1119,7 @@
 				43F785EA25E742A600787321 /* AppliedJobTagCollectionViewCell.swift in Sources */,
 				43F7F1DD25A24C9B0026EBF4 /* JobTag+CoreDataProperties.swift in Sources */,
 				43A874D225C8F0D300E6E82E /* ContactDetailViewController.swift in Sources */,
+				43C125F72624041600DE242D /* Invite+CoreDataClass.swift in Sources */,
 				4386CB5E26018C0C00687AE0 /* TakePhotoViewController.swift in Sources */,
 				438682A4259B19380003288B /* PasswordEmailSentViewController.swift in Sources */,
 				43C9C3A725A221FB00F26F6C /* JobImageCollectionViewCell.swift in Sources */,
@@ -1125,6 +1154,8 @@
 				430D10D125B2F38D0071B506 /* Rating+CoreDataProperties.swift in Sources */,
 				4389BB2F25C7A76900F0EDA7 /* ContactsViewController.swift in Sources */,
 				430FB5A5260436680043D8EE /* JobPaymentsViewController.swift in Sources */,
+				437922012623ED1600C3E647 /* StartJoinAirworkerViewController.swift in Sources */,
+				437921FC2623ECCB00C3E647 /* NewLinkViewController.swift in Sources */,
 				4316726A26117E3000C29AE5 /* Resource+CoreDataClass.swift in Sources */,
 				43B7602D25DA1E1900FFF716 /* PickUserViewController.swift in Sources */,
 				43B1470725E48EF700FE02EA /* AppData+CoreDataProperties.swift in Sources */,
@@ -1152,6 +1183,7 @@
 				4392E2CB25AAB37F0098B22C /* NotificationsViewController.swift in Sources */,
 				43F785E525E7427E00787321 /* AppliedJobTableViewCell.swift in Sources */,
 				4320BCBF25C47B80006FA9C7 /* EditJobViewController.swift in Sources */,
+				437922062623ED5900C3E647 /* AddLinkViewController.swift in Sources */,
 				43C9C38A25A20E6900F26F6C /* DurationViewController.swift in Sources */,
 				430E287F25DC112A00A76ACB /* JobApplications+CoreDataClass.swift in Sources */,
 				435BB37C25BC85820073FDE2 /* SelectApplicantViewController.swift in Sources */,

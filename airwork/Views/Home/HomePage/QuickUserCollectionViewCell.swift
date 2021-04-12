@@ -12,4 +12,5 @@ class QuickUserCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var applicationsLabel: UILabel!
     @IBOutlet weak var ratingsLabel: UILabel!
     @IBOutlet weak var mapIconView: UIImageView!
+    @IBOutlet weak var userImageView: UIImageView!
 }

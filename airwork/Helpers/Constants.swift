@@ -60,6 +60,8 @@ struct Constants{
     let tag_data = "tag_data"
     
     let sign_in_broadcast = "sign_in_broadcast"
+    let invites = "invites"
+    let time_between_invites = (12*60*60*1000)
     
     
     func randomString(_ length: Int) -> String {

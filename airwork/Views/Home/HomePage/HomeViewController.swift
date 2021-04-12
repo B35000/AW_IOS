@@ -97,6 +97,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var updateLocationContainer: CardView!
     @IBOutlet weak var makePublicSwitch: UISwitch!
     
+    @IBOutlet weak var joinAirworkerContainer: UIView!
+    @IBOutlet weak var inviteUserContainer: UIView!
+    
+    
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -350,6 +354,35 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         self.updateLinks()
+        
+    }
+    
+    func updateInviteJoinContainers(){
+        var uid = Auth.auth().currentUser!.uid
+        var my_link = self.getMyInviteIfExists(uid: uid)
+        
+        self.inviteUserContainer.isHidden = true
+        self.switchAccountContainer.isHidden = true
+        self.joinAirworkerContainer.isHidden = false
+        
+        if my_link != nil {
+            var account = self.getAccountIfExists(uid: uid)
+            if account != nil {
+                if !Auth.auth().currentUser!.isAnonymous {
+                    self.joinAirworkerContainer.isHidden = true
+                    if amIAirworker(){
+                        if (self.canUserInvite()){
+                            self.inviteUserContainer.isHidden = false
+                        }
+                    }
+                    self.switchAccountContainer.isHidden = false
+                }
+            }
+        }
+    }
+    
+    func canUserInvite() -> Bool {
+        return self.isEmailVerified()
     }
     
     func updateLinks(){
@@ -404,6 +437,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
             }
         }
+        
+        self.updateInviteJoinContainers()
     }
     
     
@@ -2009,10 +2044,85 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 cell.containerCardView.backgroundColor = c
             }
             
+            var my_contact = getContactIfExists(uid: uid)
+            
+            if my_contact != nil {
+                cell.userImageView.isHidden = false
+                                
+                let storageRef = Storage.storage().reference()
+                let ref = storageRef.child(constants.users_data)
+                    .child(uid)
+                    .child("avatar.jpg")
+                
+                if constants.getResourceIfExists(data_id: ref.fullPath, context: context) != nil {
+                    let resource = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!
+                    let im = UIImage(data: resource.data!)
+                    cell.userImageView.image = im
+                      
+                    let image = cell.userImageView!
+                    image.layer.borderWidth = 1
+                    image.layer.masksToBounds = false
+                    image.layer.borderColor = UIColor.white.cgColor
+                    image.layer.cornerRadius = image.frame.height/2
+                    image.clipsToBounds = true
+                }else{
+                    ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                        if let error = error {
+                          // Uh-oh, an error occurred!
+                            print("loading image from cloud failed")
+                        } else {
+                          // Data for "images/island.jpg" is returned
+                          let im = UIImage(data: data!)
+                            cell.userImageView.image = im
+                            
+                            let image = cell.userImageView!
+                            image.layer.borderWidth = 1
+                            image.layer.masksToBounds = false
+                            image.layer.borderColor = UIColor.white.cgColor
+                            image.layer.cornerRadius = image.frame.height/2
+                            image.clipsToBounds = true
+                            
+                            self.constants.storeResource(data_id: ref.fullPath, context: self.context, data: data!, author_id: uid)
+                        }
+                      }
+                }
+            }else{
+                cell.userImageView.isHidden = true
+            }
+            
+            
             return cell
         }
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "NewJobIconItemCell", for: indexPath) as! NewJobItemCollectionViewCell
+        
+        let job = getJobIfExists(job_id: new_jobs[indexPath.row])
+        if(job != nil){
+            let uploader_acc = self.getAccountIfExists(uid: job!.uploader_id!)
+            if uploader_acc != nil{
+                let ratings = getAccountRatings(uploader_acc!.uid!)
+                if !ratings.isEmpty {
+                    
+                    if ratings.count > 3 {
+                        var last3 = Array(ratings.suffix(3))
+                        var total = 0.0
+                        for item in last3 {
+                            total += Double(item.rating)
+                        }
+                        cell.ratingsLabel.text = "\(round(10 * total/3.0)/10)"
+                    }else{
+                        //less than 3
+                        var total = 0.0
+                        for item in ratings {
+                            total += Double(item.rating)
+                        }
+                        cell.ratingsLabel.text = "\(round(10 * total/Double(ratings.count))/10)"
+                    }
+                  
+                }
+            }
+        }
+        
         
         return cell
 
@@ -3481,6 +3591,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var ratingsReference = db.collection(constants.users_ref).document(uid).collection(constants.all_my_ratings)
         var notificationsReference = db.collection(constants.users_ref).document(uid).collection(constants.notifications)
         var complaintsReference = db.collection(constants.users_ref).document(uid).collection(constants.complaints)
+        let invite_links = db.collection(constants.invites)
         
         if amIAirworker(){
             accountReference = db.collection(constants.airworkers_ref).document(uid)
@@ -3687,6 +3798,50 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 
             }
         setAccountListners.append(accountContactsRef)
+        
+        
+        //load my created invite links
+        invite_links.addSnapshotListener{ querySnapshot, error in
+            guard let snapshot = querySnapshot else {
+                print("Error fetching snapshots: \(error!)")
+                return
+            }
+            snapshot.documentChanges.forEach { diff in
+                let link_id = diff.document.data()["link_id"] as! String
+                let creator = diff.document.data()["creator"] as! String
+                let creation_time = diff.document.data()["creation_time"] as! Int
+                let link = diff.document.data()["link"] as! String
+                let consumer = diff.document.data()["consumer"] as! String
+                let consume_time = diff.document.data()["consume_time"] as! Int
+                
+                if consumer == uid || creator == uid {
+                    var invite = self.getUserInviteIfExists(link_id: link_id)
+                    if invite == nil {
+                        invite = Invite(context: self.context)
+                    }
+                    
+                    invite?.link_id = link_id
+                    invite?.creator = creator
+                    invite?.creation_time = Int64(creation_time)
+                    invite?.link = link
+                    invite?.consumer = consumer
+                    invite?.consume_time = Int64(consume_time)
+                    
+                    if (diff.type == .added) {
+    //                        print("New item")
+
+                    }
+                    if (diff.type == .modified) {
+    //                        print("Modified item")
+                        
+                    }
+                    if (diff.type == .removed) {
+    //                        print("Removed item")
+                    }
+                    self.saveContext(self.constants.refresh_account)
+                }
+            }
+        }
         
         
         var accountRatingsRef = ratingsReference
@@ -5326,7 +5481,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func listenForPublicLocationData(){
         var pubLocationRef = db
             .collection(constants.public_locations)
-            .addSnapshotListener{querySnapshot, error in
+            .addSnapshotListener{ [self]querySnapshot, error in
                 guard let snapshot = querySnapshot else {
                     print("Error fetching snapshots: \(error!)")
                     return
@@ -5351,8 +5506,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     if (diff.type == .added) {
 //                        print("New item")
                         
-                        if !self.setOtherAccountListeners.keys.contains(uid) && uid != Auth.auth().currentUser!.uid {
-                            self.listenForAnotherUserInfo(user_id: uid)
+                        if self.getAccountIfExists(uid: uid) != nil {
+                            if creation_time > (self.constants.get_now() - (24*60*60*1000)) {
+                                if !self.setOtherAccountListeners.keys.contains(uid) && uid != Auth.auth().currentUser!.uid {
+                                    self.listenForAnotherUserInfo(user_id: uid)
+                                }
+                            }
+                        }else{
+                            if !self.setOtherAccountListeners.keys.contains(uid) && uid != Auth.auth().currentUser!.uid {
+                                self.listenForAnotherUserInfo(user_id: uid)
+                            }
                         }
                     }
                     if (diff.type == .modified) {
@@ -5952,6 +6115,43 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     
+    func getUserInviteIfExists(link_id: String) -> Invite? {
+        do{
+            let request = Invite.fetchRequest() as NSFetchRequest<Invite>
+            let predic = NSPredicate(format: "link_id == %@", link_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    func getMyInviteIfExists(uid: String) -> Invite? {
+        do{
+            let request = Invite.fetchRequest() as NSFetchRequest<Invite>
+            let predic = NSPredicate(format: "consumer == %@", uid)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
     
 }
 
