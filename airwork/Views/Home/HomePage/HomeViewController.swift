@@ -382,7 +382,32 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func canUserInvite() -> Bool {
-        return self.isEmailVerified()
+        if !self.isEmailVerified() {
+            return false
+        }
+        
+        return true
+    }
+    
+    
+    func getLatestInviteIfExists() -> Invite? {
+        do{
+            let request = Invite.fetchRequest() as NSFetchRequest<Invite>
+            let sortDesc = NSSortDescriptor(key: "creation_time", ascending: false)
+            request.sortDescriptors = [sortDesc]
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                var last_invite = items[0]
+                return last_invite
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
     }
     
     func updateLinks(){
@@ -3968,6 +3993,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                         self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
                                     }
                                 }
+//                                else{
+//                                    if !self.setJobListeners.keys.contains(job_id) {
+//                                        self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
+//                                    }
+//                                }
                             }else{
                                 if !self.setJobListeners.keys.contains(job_id) {
                                     self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
@@ -4037,10 +4067,22 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                     if !self.setJobListeners.keys.contains(job_id) {
                                         self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
                                     }
+                                }else{
+                                    var uploader_acc = self.getAccountIfExists(uid: app_job!.uploader_id!)
+                                    var uploaders_ratings = self.getAccountRatings(app_job!.uploader_id!)
+                                    if uploader_acc == nil || uploaders_ratings.isEmpty{
+                                        if !self.setJobListeners.keys.contains(job_id) {
+                                            self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                                        }
+                                    }
                                 }
                             }else{
-                                if !self.setJobListeners.keys.contains(job_id) {
-                                    self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                                var uploader_acc = self.getAccountIfExists(uid: app_job!.uploader_id!)
+                                var uploaders_ratings = self.getAccountRatings(app_job!.uploader_id!)
+                                if uploader_acc == nil || uploaders_ratings.isEmpty{
+                                    if !self.setJobListeners.keys.contains(job_id) {
+                                        self.listenForJobInfo(job_id: job_id, country: job_country, include_metas: true)
+                                    }
                                 }
                             }
                             
@@ -4417,6 +4459,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         return false
     }
+    
     
     func isJobOk(job: Job) -> Bool{
 //        if job.job_id! == "mYWiUZLwcTO8y8DzoyKl"{
@@ -4829,10 +4872,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 if self.setOtherAccountListeners[uploader_id] == nil {
                     var uploader_acc = self.getAccountIfExists(uid: uploader_id)
                     if uploader_acc == nil {
-                        if self.getAccountIfExists(uid: uploader_id) == nil {
-                            print("listening into account: \(uploader_id)")
-                            self.listenForAnotherUserInfo(user_id: uploader_id)
-                        }
+                        print("listening into account: \(uploader_id)")
+                        self.listenForAnotherUserInfo(user_id: uploader_id)
+                    }else if self.getAccountRatings(uploader_id).isEmpty{
+                        print("listening into account: \(uploader_id)")
+                        self.listenForAnotherUserInfo(user_id: uploader_id)
                     }
                 }
                 

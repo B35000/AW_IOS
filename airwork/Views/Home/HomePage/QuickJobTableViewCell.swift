@@ -159,15 +159,18 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
                 
                 var json = associateTag.tag_associates
                 let decoder = JSONDecoder()
-                let jsonData = json!.data(using: .utf8)!
+                
                 
                 do{
-                    let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
                     var shared_tags: [String] = []
-                    for item in tags{
-                        if selected_tags.contains(item.tag_title) {
-                            if(!shared_tags.contains(item.tag_title)){
-                                shared_tags.append(item.tag_title)
+                    if json != nil {
+                        let jsonData = json!.data(using: .utf8)!
+                        let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
+                        for item in tags{
+                            if selected_tags.contains(item.tag_title) {
+                                if(!shared_tags.contains(item.tag_title)){
+                                    shared_tags.append(item.tag_title)
+                                }
                             }
                         }
                     }

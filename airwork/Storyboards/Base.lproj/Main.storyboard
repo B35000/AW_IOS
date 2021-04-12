@@ -12629,10 +12629,10 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="18"/>
                                 <state key="normal" title="Continue"/>
+                                <connections>
+                                    <segue destination="OqW-ay-MNV" kind="show" id="AUP-Ma-mdH"/>
+                                </connections>
                             </button>
-                            <connections>
-                                <segue destination="OqW-ay-MNV" kind="show" id="bbR-eA-86i"/>
-                            </connections>
                         </barButtonItem>
                     </navigationItem>
                 </viewController>

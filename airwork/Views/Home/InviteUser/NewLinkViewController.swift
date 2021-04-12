@@ -30,13 +30,15 @@ class NewLinkViewController: UIViewController {
         
         for invite in my_invites{
             if (invite.creation_time > (constants.get_now() - Int64(constants.time_between_invites))) {
-                active_invites.append(invite.link_id!)
+                if invite.link! != constants.default_invite_link{
+                    active_invites.append(invite.link_id!)
+                }
             }
         }
         
         if !active_invites.isEmpty {
             let active_invite = self.getUserInviteIfExists(link_id: active_invites[0])
-            link = "\(active_invite?.link!)"
+            link = "\(active_invite!.link!)"
             
             inviteLinkLabel.text = link
             
@@ -54,7 +56,7 @@ class NewLinkViewController: UIViewController {
                 "link_id" : invite_ref.documentID,
                 "creator" : uid,
                 "creation_time" : constants.get_now(),
-                "link" : link,
+                "link" : self.link,
                 "consumer" : "N.A",
                 "consume_time" : 0
             ]
@@ -75,7 +77,23 @@ class NewLinkViewController: UIViewController {
     */
 
     @IBAction func whenCopyTapped(_ sender: UIButton) {
-        UIPasteboard.general.string = "Hello world"
+        UIPasteboard.general.string = self.link
+        
+        let alert = UIAlertController(title: "Copied to Clipboard", message: "\(self.link) copied to clipboard", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { action in
+            switch action.style{
+                case .default:
+                print("default")
+                
+                case .cancel:
+                print("cancel")
+                
+                case .destructive:
+                print("destructive")
+                
+            }
+        }))
+        self.present(alert, animated: true, completion: nil)
     }
     
     func getUserInviteIfExists(link_id: String) -> Invite? {
@@ -112,6 +130,25 @@ class NewLinkViewController: UIViewController {
         }
         
         return []
+    }
+    
+    func getLatestInviteIfExists() -> Invite? {
+        do{
+            let request = Invite.fetchRequest() as NSFetchRequest<Invite>
+            let sortDesc = NSSortDescriptor(key: "creation_time", ascending: false)
+            request.sortDescriptors = [sortDesc]
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
     }
     
     

@@ -62,6 +62,7 @@ struct Constants{
     let sign_in_broadcast = "sign_in_broadcast"
     let invites = "invites"
     let time_between_invites = (12*60*60*1000)
+    let default_invite_link = "696969699"
     
     
     func randomString(_ length: Int) -> String {
