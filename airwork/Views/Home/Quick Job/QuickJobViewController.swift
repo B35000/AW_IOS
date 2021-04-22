@@ -36,6 +36,11 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     @IBOutlet weak var viewFirstApplicantButton: UIButton!
     @IBOutlet weak var firstApplicantCardView: CardView!
     
+    @IBOutlet weak var estimatePriceContainer: UIView!
+    @IBOutlet weak var estimatedPriceLabel: UILabel!
+    @IBOutlet weak var jobLocationSwitch: UISwitch!
+    
+    @IBOutlet weak var myLocationImage: UIImageView!
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -384,6 +389,222 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         var worker_list = [String]()
     }
     
+    
+    
+    var at_most_2 = "At most 2 hours."
+    var two_to_four = "Around 2 to 4 hours."
+    var whole_day = "The whole day."
+    
+    func calculatePriceFromTag(){
+        var selectedTags = [String]()
+        for item in jobTags {
+            selectedTags.append(item.title!)
+        }
+        
+        let prices = getTagPricesForTags(selected_tags: selectedTags)
+//        estimatePriceContainer.isHidden = true
+        
+        let uid = Auth.auth().currentUser!.uid
+        let me = self.getAccountIfExists(uid: uid)
+        let curr = me?.phone?.country_currency as! String
+        
+        if !prices.isEmpty {
+            print("prices being used for calculation:--------------> \(prices.count)")
+           
+            var top = Int(getTopAverage(prices))
+            var bottom = Int(getBottomAverage(prices))
+            
+            if prices.count == 1 {
+                top = Int(prices[0])
+                bottom = Int(prices[0])
+            }
+            
+            if (top != 0  && top != bottom) {
+                estimatedPriceLabel.text = "\(bottom) - \(top) \(curr), for ~2hrs"
+//                estimatePriceContainer.isHidden = false
+            }else if (top != 0  && top == bottom) {
+                estimatedPriceLabel.text = "~ \(top) \(curr)"
+//                estimatePriceContainer.isHidden = false
+            }else{
+                estimatedPriceLabel.text = ""
+            }
+        }else{
+            estimatedPriceLabel.text = ""
+        }
+    }
+    
+    func getTagPricesForTags(selected_tags: [String]) -> [Double]{
+        var tag_with_prices = [Double]()
+        
+        for selected_tag in selected_tags {
+            var global_t = self.getGlobalTagIfExists(tag_title: selected_tag)
+            if global_t != nil {
+                var associated_tag_prices = getAssociatedTagPrices(global_t!, selected_tags)
+//                print("tag prices for: \(global_t!.title!) -------------------------> \(associated_tag_prices.count)")
+                if tag_with_prices.count < associated_tag_prices.count {
+                    tag_with_prices.removeAll()
+                    tag_with_prices.append(contentsOf: associated_tag_prices)
+                }
+            }
+        }
+        
+        return tag_with_prices
+    }
+    
+    func getAssociatedTagPrices(_ global_tag: GlobalTag,_ selected_tags: [String]) -> [Double] {
+        var prices: [Double] = []
+        var price_ids: [String] = []
+        
+        var associates = self.getGlobalTagAssociatesIfExists(tag_title: global_tag.title!)
+//        print("tag associates for tag: \(global_tag.title!) -------------------------> \(associates.count)")
+        if !associates.isEmpty{
+            for associateTag in associates{
+                var price = Double(associateTag.pay_amount)
+                
+                
+                var json = associateTag.tag_associates
+                let decoder = JSONDecoder()
+                let jsonData = json!.data(using: .utf8)!
+                
+                do{
+                    let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
+                    var shared_tags: [String] = []
+                    for item in tags{
+                        if selected_tags.contains(item.tag_title) {
+                            if(!shared_tags.contains(item.tag_title)){
+                                shared_tags.append(item.tag_title)
+                            }
+                        }
+                    }
+                    
+//                    print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
+                    
+                    if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
+                        //associated tag obj works
+                        var price = Double(associateTag.pay_amount)
+//                        print("set \(price) for tag \(associateTag.title!)")
+
+                        if associateTag.no_of_days > 0 {
+                            price = price / Double(associateTag.no_of_days)
+                        }
+                        if associateTag.work_duration != nil {
+                            switch associateTag.work_duration {
+                                case two_to_four:
+                                    price = price / 2
+                                case two_to_four:
+                                    price = price / 4
+                                default:
+                                    price = price / 1
+                            }
+                        }
+                        
+                        if(!price_ids.contains(associateTag.job_id!)){
+                            prices.append(price)
+                            price_ids.append(associateTag.job_id!)
+                        }
+                    }
+                    
+                }catch {
+                    
+                }
+            }
+        }
+        
+        
+        return prices
+    }
+    
+    struct json_tag_array: Codable{
+        var tags: [json_tag] = []
+    }
+    
+    func getTopAverage(_ prices: [Double]) -> Double {
+        let sortedPrices = prices.sorted(by: >)
+        
+        var number_of_items = Int(Double(prices.count) * 0.6)
+        
+        var total = 0.0
+        for price in sortedPrices.prefix(number_of_items) {
+            total += price
+        }
+        
+        if total.isZero {
+            return 0.0
+        }
+        
+        return total / Double(number_of_items)
+    }
+    
+    
+    func getBottomAverage(_ prices: [Double]) -> Double {
+        let sortedPrices = prices.sorted(by: <)
+        
+        var number_of_items = Int(Double(prices.count) * 0.6)
+        
+        var total = 0.0
+        for price in sortedPrices.prefix(number_of_items) {
+            total += price
+        }
+        
+        if total.isZero {
+            return 0.0
+        }
+        
+        return total / Double(number_of_items)
+    }
+    
+    
+    func getGlobalTagsIfExists() -> [GlobalTag]{
+        do{
+            let request = GlobalTag.fetchRequest() as NSFetchRequest<GlobalTag>
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    
+    
+    func getGlobalTagAssociatesIfExists(tag_title: String) -> [JobTag]{
+        do{
+            let request = JobTag.fetchRequest() as NSFetchRequest<JobTag>
+            let predic = NSPredicate(format: "title == %@ && global == \(NSNumber(value: true))", tag_title)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items
+            }
+            
+        }catch {
+            
+        }
+        
+        return []
+    }
+    
+    
+//    struct json_tag_array: Codable{
+//        var tags: [json_tag] = []
+//    }
+    
+    struct json_tag: Codable{
+        var no_of_days = 0
+        var tag_class = ""
+        var tag_title = ""
+        var work_duration = ""
+    }
+    
+    
+    
+    
     func setUpMap(){
         self.mapView.alpha = 0
         
@@ -423,9 +644,9 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
                // Code you want to be delayed
-                let camera = GMSCameraPosition.camera(withLatitude: self.myLat, longitude: self.myLong, zoom: 15.0)
-                self.mapView.alpha = 1
-                self.mapView.camera = camera
+//                let camera = GMSCameraPosition.camera(withLatitude: self.myLat, longitude: self.myLong, zoom: 15.0)
+//                self.mapView.alpha = 1
+//                self.mapView.camera = camera
             }
             
         }
@@ -433,9 +654,23 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         
     }
     
+    @IBAction func whenMyLocationTapped(_ sender: Any) {
+        print("show my location tapped ------------------------")
+        if myLat != 0.0 && myLong != 0.0 {
+            self.moveCamera(self.myLat, self.myLong)
+        }else{
+            self.setUpMap()
+        }
+    }
+    
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
         print("locations = \(locValue.latitude) \(locValue.longitude)")
+        
+        
+        self.jobLocationSwitch.isEnabled = true
+        self.myLocationImage.image = UIImage(named: "KnownLocation")
         
         if(self.myLat == 0.0){
             self.myLat = locValue.latitude
@@ -446,13 +681,59 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             self.setAllUsersOnMap()
             
             if (self.job!.location_lat == 0.0 && self.job!.location_long == 0.0) {
-                self.setMyLocationInJob(locValue.latitude, locValue.longitude)
+                self.jobLocationSwitch.isOn = false
+            }else{
+                self.jobLocationSwitch.isOn = true
             }
         }
         self.myLat = locValue.latitude
         self.myLong = locValue.longitude
         
     }
+    
+    @IBAction func whenLocationSwitchTapped(_ sender: UISwitch) {
+        if sender.isOn {
+            self.setMyLocationInJob(self.myLat, self.myLong)
+        }else{
+            let db = Firestore.firestore()
+            let uid = Auth.auth().currentUser!.uid
+            
+            let location: [String: Any] = [
+                "latitude" : 0.0,
+                "longitude" : 0.0,
+                "description" : ""
+            ]
+            
+            let docData: [String: Any] = [
+                "location" : location
+            ]
+            
+            let refData: [String: Any] = [
+                "location" : location
+            ]
+            
+            
+            let newJobRef = db.collection(self.constants.jobs)
+                .document(self.job!.country_name!)
+                .collection("country_jobs")
+                .document(self.job_id)
+            
+            db.collection(self.constants.users_ref)
+                .document(uid)
+                .collection(self.constants.job_history)
+                .document(self.job_id)
+                .updateData(refData)
+            
+            newJobRef.updateData(docData){ err in
+                if let err = err {
+                    print("Error writing document: \(err)")
+                } else {
+                    print("Document successfully written!")
+                }
+            }
+        }
+    }
+    
     
     func moveCamera(_ lat: Double,_ long: Double){
         mapView.animate(to: GMSCameraPosition(latitude: lat, longitude: long, zoom: 15))
@@ -477,8 +758,6 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
         self.myLocationCircle = circle
     
     }
-    
-    
     
     func setMyLocationInJob(_ lat: Double,_ lng: Double){
         
@@ -548,6 +827,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
                                 print("Document successfully written!")
                             }
                         }
+                        
                     }
                     
                 } else {
@@ -565,6 +845,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     }
     
 
+    
     
     func setAllUsersOnMap(){
         var bounds = GMSCoordinateBounds()
@@ -1233,6 +1514,25 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             let request = Account.fetchRequest() as NSFetchRequest<Account>
             
             let predic = NSPredicate(format: "uid == %@", user_id)
+            request.predicate = predic
+            
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    func getGlobalTagIfExists(tag_title: String) -> GlobalTag?{
+        do{
+            let request = GlobalTag.fetchRequest() as NSFetchRequest<GlobalTag>
+            let predic = NSPredicate(format: "title == %@", tag_title)
             request.predicate = predic
             
             let items = try context.fetch(request)

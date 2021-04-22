@@ -192,6 +192,7 @@ class JobHistoryViewController: UIViewController, UITableViewDelegate, UITableVi
             print("loaded \(item.rating_id!)")
             
             var req_id_format = "\(job!.uploader.id)\(job_id!)"
+//            req_id_format = "\(job_id!)"
             if amIAirworker(){
                 var unreq_id_format = "\(job_id!)"
                 if item.rating_id! != unreq_id_format{

@@ -396,6 +396,13 @@ class ApplicantViewController: UIViewController, CLLocationManagerDelegate {
             selectApplicantViewController.applicant_id = applicant_id
             selectApplicantViewController.title = getApplicantAccount(applicant_id)!.name
             
+        case "ContactApplicantSegue":
+            guard let contactUserViewController = segue.destination as? ContactUserViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            
+            contactUserViewController.contact_id = self.getJobIfExists(job_id: job_id)!.uploader_id!
+            
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")
         }

@@ -171,10 +171,6 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     }
     
     @IBAction func changePhotoTapped(_ sender: Any) {
-        
-    }
-    
-    @IBAction func onPickImageTapped(_ sender: Any) {
         if UIImagePickerController.isSourceTypeAvailable(.savedPhotosAlbum){
             print("Button pick image")
             
@@ -187,8 +183,34 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
         }
     }
     
+    @IBAction func onPickImageTapped(_ sender: Any) {
+       
+    }
+    
     
     @IBAction func onSignOutTapped(_ sender: Any) {
+        
+        let alert = UIAlertController(title: "Sign Out?", message: "Are you sure you wish to log out?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Yes.", style: .default, handler: { action in
+            switch action.style{
+                case .default:
+                print("default")
+                    self.sign_out()
+                
+                case .cancel:
+                print("cancel")
+                
+                case .destructive:
+                print("destructive")
+                
+            }
+        }))
+        self.present(alert, animated: true, completion: nil)
+        
+   
+    }
+    
+    func sign_out(){
         let contactRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Contact")
         let contactDeleteRequest = NSBatchDeleteRequest( fetchRequest: contactRequest)
         

@@ -175,30 +175,32 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
                         }
                     }
                     
-                    print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
-                    
-                    if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
-                        //associated tag obj works
-                        var price = Double(associateTag.pay_amount)
-//                        print("set \(price) for tag \(associateTag.title!)")
-
-                        if associateTag.no_of_days > 0 {
-                            price = price / Double(associateTag.no_of_days)
-                        }
-                        if associateTag.work_duration != nil {
-                            switch associateTag.work_duration {
-                                case two_to_four:
-                                    price = price / 2
-                                case two_to_four:
-                                    price = price / 4
-                                default:
-                                    price = price / 1
-                            }
-                        }
+                    if(associateTag.job_id != nil){
+                        print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
                         
-                        if(!price_ids.contains(associateTag.job_id!)){
-                            prices.append(price)
-                            price_ids.append(associateTag.job_id!)
+                        if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
+                            //associated tag obj works
+                            var price = Double(associateTag.pay_amount)
+    //                        print("set \(price) for tag \(associateTag.title!)")
+
+                            if associateTag.no_of_days > 0 {
+                                price = price / Double(associateTag.no_of_days)
+                            }
+                            if associateTag.work_duration != nil {
+                                switch associateTag.work_duration {
+                                    case two_to_four:
+                                        price = price / 2
+                                    case two_to_four:
+                                        price = price / 4
+                                    default:
+                                        price = price / 1
+                                }
+                            }
+                            
+                            if(!price_ids.contains(associateTag.job_id!)){
+                                prices.append(price)
+                                price_ids.append(associateTag.job_id!)
+                            }
                         }
                     }
                     

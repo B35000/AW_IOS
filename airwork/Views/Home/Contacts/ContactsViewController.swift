@@ -185,6 +185,10 @@ class ContactsViewController: UIViewController, UITableViewDelegate, UITableView
         let me = Auth.auth().currentUser?.uid
         print("loading contact : \(contact.rated_user!) ratings")
         let my_received_ratings = self.getAccountRatings(contact.rated_user!)
+//        var my_received_ratings = self.getAccountRatings(me!)
+        if(amIAirworker()){
+            let my_received_ratings = self.getAccountRatings(contact.rated_user!)
+        }
         print("contacts received \(my_received_ratings.count) ratings")
         var my_ratings = [Rating]()
         

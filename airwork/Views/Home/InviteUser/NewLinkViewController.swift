@@ -44,7 +44,7 @@ class NewLinkViewController: UIViewController {
             
             
         }else{
-            let randomInt = Int.random(in: 1..<1000000000)
+            let randomInt = Int.random(in: 100000000..<1000000000)
             link = "\(randomInt)"
             
             inviteLinkLabel.text = link

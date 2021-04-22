@@ -110,6 +110,9 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
     @IBOutlet weak var ViewAttachedDoc: UIView!
     @IBOutlet weak var lock_icon: UIImageView!
     
+    @IBOutlet weak var contactContainer: UIView!
+    
+    
     
     var job_id: String = ""
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -168,19 +171,27 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
         let uid = Auth.auth().currentUser!.uid
         job = self.getJobIfExists(job_id: job_id)!
         
-        let upload_time = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
+        var viewers = [String]()
+        let views = self.getJobViewsIfExists(job_id: job_id)
+        for item in views{
+            viewers.append(item.viewer_id!)
+        }
         
-        let ref = db.collection(constants.jobs_ref)
-            .document(job!.country_name!)
-            .collection(constants.country_jobs)
-            .document(job_id)
-            .collection(constants.views)
-            .document(uid).setData([
-                "view_id" : uid,
-                "view_time" : upload_time,
-                "viewer_id" : uid,
-                "job_id" : job!.job_id!
-            ])
+        if !viewers.contains(uid) {
+            let upload_time = Int64((Date().timeIntervalSince1970 * 1000.0).rounded())
+            
+            let ref = db.collection(constants.jobs_ref)
+                .document(job!.country_name!)
+                .collection(constants.country_jobs)
+                .document(job_id)
+                .collection(constants.views)
+                .document(uid).setData([
+                    "view_id" : uid,
+                    "view_time" : upload_time,
+                    "viewer_id" : uid,
+                    "job_id" : job!.job_id!
+                ])
+        }
     }
     
     func canIApplyForJob() -> Bool{
@@ -725,7 +736,7 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
             rateWorkersContainer.isHidden = true
             rateOwnerView.isHidden = true
             jobOwnerRatingsContainer.isHidden = false
-            
+            contactContainer.isHidden = true
             editButton.isEnabled = false
             
             applicantsView.isHidden = true
@@ -768,6 +779,7 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
                                 
                                 print("I was picked for this job")
                                 applyForJobContainer.isHidden = true
+                                contactContainer.isHidden = false
                             }else{
                                 rateWorkersContainer.isHidden = true
                                 rateOwnerView.isHidden = true
@@ -2255,6 +2267,13 @@ class JobDetailsViewController: UIViewController, UICollectionViewDelegate, UICo
                 .child("\(job_id).pdf")
             
             pdfVc.picked_doc = constants.getResourceIfExists(data_id: ref.fullPath, context: context)!.data
+            
+        case "ContactUserSegue":
+            guard let contactUserViewController = segue.destination as? ContactUserViewController else {
+                fatalError("Unexpected destination: \(segue.destination)")
+            }
+            
+            contactUserViewController.contact_id = self.getJobIfExists(job_id: job_id)!.uploader_id!
             
         default:
             print("Unexpected Segue Identifier; \(segue.identifier)")

@@ -386,6 +386,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             return false
         }
         
+        var uid = Auth.auth().currentUser!.uid
+        var my_invite = getMyInviteIfExists(uid: uid)
+        
+        if my_invite == nil {
+            return false
+        }
+        
+        if (my_invite!.consume_time > (constants.get_now() - Int64(constants.time_between_invites))){
+            return false
+        }
+        
         return true
     }
     
@@ -728,11 +739,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.pickedUsers.removeAll()
         let pub_users = self.getSharedLocationUsersIfExists()
         var picked_users = [String]()
+        var me = Auth.auth().currentUser!.uid
         var picked_users_and_ratings: [users_and_ratings] = [users_and_ratings]()
         
         if selectedTags.isEmpty{
             for item in pub_users{
-                picked_users.append(item.uid!)
+                if(item.uid! != me){
+                    picked_users.append(item.uid!)
+                }
             }
             let sorted_users = picked_users.sorted { getRatingsMatchingPickedTags($0).count > getRatingsMatchingPickedTags($1).count }
            
@@ -745,7 +759,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             
             if !matching_jobs.isEmpty || !matching_ratings.isEmpty{
                 if(!picked_users.contains(user.uid!)){
-                    picked_users.append(user.uid!)
+                    if(user.uid! != me){
+                        picked_users.append(user.uid!)
+                    }
                 }
             }
         }
@@ -753,7 +769,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if !selectedUsers.isEmpty{
             for user in selectedUsers{
                 if(!picked_users.contains(user)){
-                    picked_users.append(user)
+                    if(user != me){
+                        picked_users.append(user)
+                    }
                     
                 }
             }
@@ -1924,7 +1942,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             var their_loc = getPubUsersLocation(user)
             self.map_job_id = user
             
-            if their_loc != nil {
+            if their_loc != nil && self.myLat != 0.0 && self.myLong != 0.0 {
                 if path == nil {
                     var new_path = GMSMutablePath()
                     
@@ -1973,6 +1991,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     self.runAnimationForDirection(path!)
                 }
             }
+            
         }
     }
     
@@ -2158,7 +2177,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if collectionView == jobsCollectionView{
             print("You selected cell \(indexPath.item)!")
             let job_id = new_jobs[indexPath.row]
-            self.showJobOnMap(job_id: job_id)
+            if self.myLat == 0.0 && self.myLong == 0.0 {
+                let job = self.getJobIfExists(job_id: job_id)
+                if job != nil && job!.location_desc! != "" {
+                    self.moveCamera(job!.location_lat, job!.location_long)
+                }
+            }else{
+                self.showJobOnMap(job_id: job_id)
+            }
         }
         
         if collectionView == quckJobTagsCollection {
@@ -3993,11 +4019,15 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                         self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
                                     }
                                 }
-//                                else{
-//                                    if !self.setJobListeners.keys.contains(job_id) {
-//                                        self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
-//                                    }
-//                                }
+                                else{
+                                    var job_applicants = self.getJobApplicantsIfExists(job_id: job_id)
+                                    print("applicants contained in -------------\(job_id) are \(job_applicants.count)")
+                                    if job_applicants.isEmpty{
+                                        if !self.setJobListeners.keys.contains(job_id) {
+                                            self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
+                                        }
+                                    }
+                                }
                             }else{
                                 if !self.setJobListeners.keys.contains(job_id) {
                                     self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
@@ -4683,13 +4713,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                     
                     if (diff.type == .added) {
 //                        print("New item")
+                        
                     }
                     if (diff.type == .modified) {
 //                        print("Modified item")
                     }
                     if (diff.type == .removed) {
 //                        print("Removed item")
+                        self.context.delete(rating!)
                     }
+                    
+                    
                 }
                 self.saveContext(self.constants.refresh_account)
 //                print("loaded \(snapshot.documentChanges.count) contact ratings")
@@ -4870,13 +4904,16 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.saveContext(self.constants.refresh_job)
                 
                 if self.setOtherAccountListeners[uploader_id] == nil {
-                    var uploader_acc = self.getAccountIfExists(uid: uploader_id)
-                    if uploader_acc == nil {
-                        print("listening into account: \(uploader_id)")
-                        self.listenForAnotherUserInfo(user_id: uploader_id)
-                    }else if self.getAccountRatings(uploader_id).isEmpty{
-                        print("listening into account: \(uploader_id)")
-                        self.listenForAnotherUserInfo(user_id: uploader_id)
+                    var me = Auth.auth().currentUser!.uid
+                    if(uploader_id != me){
+                        var uploader_acc = self.getAccountIfExists(uid: uploader_id)
+                        if uploader_acc == nil {
+                            print("listening into account: \(uploader_id)")
+                            self.listenForAnotherUserInfo(user_id: uploader_id)
+                        }else if self.getAccountRatings(uploader_id).isEmpty{
+                            print("listening into account: \(uploader_id)")
+                            self.listenForAnotherUserInfo(user_id: uploader_id)
+                        }
                     }
                 }
                 
@@ -4971,9 +5008,14 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                             
                             if self.setOtherAccountListeners[applicant_uid] == nil {
                                 print("adding listener for user: \(applicant_uid) from job applicants ref")
+                                var account_ratings = self.getAccountRatings(applicant_uid)
                                 if self.getAccountIfExists(uid: applicant_uid) == nil {
                                     print("listening into account: \(applicant_uid)")
                                     self.listenForAnotherUserInfo(user_id: applicant_uid)
+                                }else{
+                                    if account_ratings.isEmpty{
+                                        self.listenForAnotherUserInfo(user_id: applicant_uid)
+                                    }
                                 }
                             }
                         }

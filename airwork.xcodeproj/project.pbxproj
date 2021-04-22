@@ -145,6 +145,7 @@
 		43C9C3AF25A2239600F26F6C /* XcCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C9C3AE25A2239600F26F6C /* XcCollectionViewController.swift */; };
 		43D138EA25FBC40400A22C08 /* NewJobTagCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D138E925FBC40400A22C08 /* NewJobTagCollectionViewCell.swift */; };
 		43D894EA25D349D10012601B /* VerifyEmailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D894E925D349D10012601B /* VerifyEmailViewController.swift */; };
+		43D915EF2628936400A0E4B8 /* ContactUserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D915EE2628936400A0E4B8 /* ContactUserViewController.swift */; };
 		43DA81D3259B94A800EACE51 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43DA81D2259B94A800EACE51 /* HomeViewController.swift */; };
 		43DA81DE259B99AB00EACE51 /* SignUpNavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43DA81DD259B99AB00EACE51 /* SignUpNavigationController.swift */; };
 		43E0D12325B8211F009C7F96 /* RatingTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43E0D12225B8211F009C7F96 /* RatingTableViewCell.swift */; };
@@ -327,6 +328,7 @@
 		43D138E925FBC40400A22C08 /* NewJobTagCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewJobTagCollectionViewCell.swift; sourceTree = "<group>"; };
 		43D894E525D3443D0012601B /* airwork.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = airwork.entitlements; sourceTree = "<group>"; };
 		43D894E925D349D10012601B /* VerifyEmailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyEmailViewController.swift; sourceTree = "<group>"; };
+		43D915EE2628936400A0E4B8 /* ContactUserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactUserViewController.swift; sourceTree = "<group>"; };
 		43DA81D2259B94A800EACE51 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		43DA81DD259B99AB00EACE51 /* SignUpNavigationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpNavigationController.swift; sourceTree = "<group>"; };
 		43E0D12225B8211F009C7F96 /* RatingTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingTableViewCell.swift; sourceTree = "<group>"; };
@@ -755,6 +757,7 @@
 				439A1AE4260A5C45007BCCB9 /* Add Skill */,
 				430FB5A3260436280043D8EE /* Payment */,
 				437921F22623EC0800C3E647 /* InviteUser */,
+				43D915EE2628936400A0E4B8 /* ContactUserViewController.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -1071,6 +1074,7 @@
 				43FE2A7225BA6D1C00380613 /* ApplicantTableViewCell.swift in Sources */,
 				43207CE025D7936F004B4A9C /* PendingRatingTableViewCell.swift in Sources */,
 				43B0E0F3259E351600A94E09 /* Account+CoreDataProperties.swift in Sources */,
+				43D915EF2628936400A0E4B8 /* ContactUserViewController.swift in Sources */,
 				43C73AA925E35E3D00384F08 /* QuickJobViewController.swift in Sources */,
 				43A8CD3E25A2684B00D3F046 /* JobTagCollectionViewCell.swift in Sources */,
 				434A5F4525946B650061D2D2 /* LauncherScreen.swift in Sources */,

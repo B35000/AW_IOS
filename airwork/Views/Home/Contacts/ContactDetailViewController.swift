@@ -471,7 +471,7 @@ class ContactDetailViewController: UIViewController, UICollectionViewDelegate, U
             let rater_id = item.rating_id!.replacingOccurrences(of: job_id!, with: "")
             
             var req_id_format = "\(job!.uploader_id!)\(job!.job_id!)"
-//            var req_id_format = "\(job!.job_id!)"
+//            req_id_format = "\(job!.job_id!)"
             if self.amIAirworker(){
                 if rater_id != ""{
                     req_id_format = "\(rater_id)\(job!.job_id!)"

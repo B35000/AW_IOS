@@ -13,6 +13,7 @@ import CoreData
 class SignUpIntroViewController: UIViewController {
     @IBOutlet weak var whenLicensePressed: UILabel!
     @IBOutlet weak var skipButton: UIButton!
+    @IBOutlet weak var bannerImage: UIImageView!
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
@@ -29,6 +30,12 @@ class SignUpIntroViewController: UIViewController {
                 //anon, so hide skip btn
                 skipButton.isHidden = true
             }
+        }
+        
+        if UITraitCollection.current.userInterfaceStyle == .dark {
+            bannerImage.image = UIImage(named: "LandingImage")
+        }else{
+            bannerImage.image = UIImage(named: "LandingImageLight")
         }
     }
     
