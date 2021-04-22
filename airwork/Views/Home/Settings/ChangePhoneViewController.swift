@@ -28,6 +28,8 @@ class ChangePhoneViewController: UIViewController {
         var account = getApplicantAccount(my_id)
         
         phoneNumberField.text = "\(account!.phone!.digit_number)"
+        
+        cpvMain.textColor = UIColor(named: "LabelColor")!
     }
     
 

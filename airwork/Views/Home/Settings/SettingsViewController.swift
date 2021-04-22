@@ -191,7 +191,7 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
     @IBAction func onSignOutTapped(_ sender: Any) {
         
         let alert = UIAlertController(title: "Sign Out?", message: "Are you sure you wish to log out?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Yes.", style: .default, handler: { action in
+        alert.addAction(UIAlertAction(title: "Yes", style: .default, handler: { action in
             switch action.style{
                 case .default:
                 print("default")
@@ -199,6 +199,21 @@ class SettingsViewController: UIViewController, UIImagePickerControllerDelegate,
                 
                 case .cancel:
                 print("cancel")
+                
+                case .destructive:
+                print("destructive")
+                
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { action in
+            switch action.style{
+                case .default:
+                print("default")
+                    alert.dismiss(animated: true, completion: nil)
+                
+                case .cancel:
+                print("cancel")
+                    alert.dismiss(animated: true, completion: nil)
                 
                 case .destructive:
                 print("destructive")

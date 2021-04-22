@@ -1074,6 +1074,40 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
                 
         //lets load the map
+        if !has_loaded_map {
+            has_loaded_map = true
+            
+            do {
+                 if let styleURL = Bundle.main.url(forResource: "style", withExtension: "json") {
+                    if UITraitCollection.current.userInterfaceStyle == .dark {
+                        mapView.mapStyle = try GMSMapStyle(contentsOfFileURL: styleURL)
+                    }else{
+                        if let styleURL2 = Bundle.main.url(forResource: "light-style", withExtension: "json") {
+                            mapView.mapStyle = try GMSMapStyle(contentsOfFileURL: styleURL2)
+                        }
+                        
+                    }
+                 } else {
+                   NSLog("Unable to find style.json")
+                 }
+            } catch {
+                 NSLog("One or more of the map styles failed to load. \(error)")
+            }
+            
+            mapView.layer.cornerRadius = 15
+            mapView.isUserInteractionEnabled = false
+            mapView.delegate = self
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
+               // Code you want to be delayed
+                
+//                    self.addJobsOnMap()
+            }
+            
+            self.moveCamera(-1.286389, 36.817223)
+        }
+        
+        
         self.locationManager.requestAlwaysAuthorization()
         self.locationManager.requestWhenInUseAuthorization()
         
@@ -1083,38 +1117,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
             self.locationManager.startUpdatingLocation()
             
-            if !has_loaded_map {
-                has_loaded_map = true
-                
-                do {
-                     if let styleURL = Bundle.main.url(forResource: "style", withExtension: "json") {
-                        if UITraitCollection.current.userInterfaceStyle == .dark {
-                            mapView.mapStyle = try GMSMapStyle(contentsOfFileURL: styleURL)
-                        }else{
-                            if let styleURL2 = Bundle.main.url(forResource: "light-style", withExtension: "json") {
-                                mapView.mapStyle = try GMSMapStyle(contentsOfFileURL: styleURL2)
-                            }
-                            
-                        }
-                     } else {
-                       NSLog("Unable to find style.json")
-                     }
-                } catch {
-                     NSLog("One or more of the map styles failed to load. \(error)")
-                }
-                
-                mapView.layer.cornerRadius = 15
-                mapView.isUserInteractionEnabled = false
-                
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
-                   // Code you want to be delayed
-                    
-//                    self.addJobsOnMap()
-                }
-                
-                
-            }
             
         }
         

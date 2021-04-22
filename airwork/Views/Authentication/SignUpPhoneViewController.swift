@@ -35,6 +35,8 @@ class SignUpPhoneViewController: UIViewController {
                 isAlreadyAnon = true
             }
         }
+        
+        cpvMain.textColor = UIColor(named: "LabelColor")!
     }
     
 

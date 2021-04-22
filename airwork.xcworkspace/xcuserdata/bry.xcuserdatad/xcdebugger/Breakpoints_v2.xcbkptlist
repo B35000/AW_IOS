@@ -46,8 +46,8 @@
             filePath = "airwork/Views/Home/Quick Job/QuickJobViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "753"
-            endingLineNumber = "753"
+            startingLineNumber = "757"
+            endingLineNumber = "757"
             landmarkName = "setMyLocation(_:_:)"
             landmarkType = "7">
          </BreakpointContent>

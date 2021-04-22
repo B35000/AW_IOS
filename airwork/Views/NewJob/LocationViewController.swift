@@ -8,9 +8,13 @@
 import UIKit
 import GoogleMaps
 
-class LocationViewController: UIViewController {
+class LocationViewController: UIViewController, CLLocationManagerDelegate {
     @IBOutlet weak var skipButton: UIButton!
     @IBOutlet weak var mapView: GMSMapView!
+    @IBOutlet weak var myLocationImage: UIImageView!
+    var myLocationMarker: GMSMarker?
+    var myLocationCircle: GMSCircle?
+    
     let locationManager = CLLocationManager()
     var location_desc = ""
     var lat = 0.0
@@ -39,56 +43,104 @@ class LocationViewController: UIViewController {
         }
                 
         mapView.settings.compassButton = true
-        mapView.settings.myLocationButton = true
+        mapView.settings.myLocationButton = false
         mapView.layer.cornerRadius = 15
         
-        let locStatus = CLLocationManager.authorizationStatus()
-                
-        if locStatus == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-            
-            if(CLLocationManager.authorizationStatus() == .authorizedWhenInUse || CLLocationManager.authorizationStatus() == .authorizedAlways) {
-                var currentLoc: CLLocation? = locationManager.location
-                print(currentLoc?.coordinate.latitude)
-                print(currentLoc?.coordinate.longitude)
-                
-                if currentLoc?.coordinate.latitude != nil {
-                    moveCamera(currentLoc!.coordinate.latitude, currentLoc!.coordinate.longitude)
-                }
-          }
-        }else{
-            if(CLLocationManager.authorizationStatus() == .authorizedWhenInUse || CLLocationManager.authorizationStatus() == .authorizedAlways) {
-                    var currentLoc: CLLocation? = locationManager.location
-                    print(currentLoc?.coordinate.latitude)
-                    print(currentLoc?.coordinate.longitude)
-                
-                    if currentLoc?.coordinate.latitude != nil {
-                        moveCamera(currentLoc!.coordinate.latitude, currentLoc!.coordinate.longitude)
-                    }
-                
-          }
-        }
-            
+        self.moveCamera(-1.286389, 36.817223)
+        
+        
+        self.locationManager.requestAlwaysAuthorization()
+        self.locationManager.requestWhenInUseAuthorization()
         
         if CLLocationManager.locationServicesEnabled() {
-            switch CLLocationManager.authorizationStatus() {
-                case .notDetermined, .restricted, .denied:
-                    print("No access to location enabled")
-                case .authorizedAlways, .authorizedWhenInUse:
-                    print("Access to location enabled")
-                @unknown default:
-                break
+            self.locationManager.delegate = self
+            self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+            self.locationManager.startUpdatingLocation()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
+               // Code you want to be delayed
+//                let camera = GMSCameraPosition.camera(withLatitude: self.myLat, longitude: self.myLong, zoom: 15.0)
+//                self.mapView.alpha = 1
+//                self.mapView.camera = camera
             }
-            } else {
-                print("Location services are not enabled")
+            
         }
         
     }
     
     
     func moveCamera(_ lat: Double,_ long: Double){
+//        CATransaction.begin()
+//        CATransaction.setValue(1.1, forKey: kCATransactionAnimationDuration)
         mapView.animate(to: GMSCameraPosition(latitude: lat, longitude: long, zoom: 15))
+//        CATransaction.commit()
+    }
+    
+    @IBAction func whenMyLocationTapped(_ sender: Any) {
+        print("show my location tapped ------------------------")
+        if lat != 0.0 && lng != 0.0 {
+            self.moveCamera(self.lat, self.lng)
+        }else{
+            self.locationManager.requestAlwaysAuthorization()
+            self.locationManager.requestWhenInUseAuthorization()
+            
+            if CLLocationManager.locationServicesEnabled() {
+                self.locationManager.delegate = self
+                self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+                self.locationManager.startUpdatingLocation()
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
+                   // Code you want to be delayed
+    //                let camera = GMSCameraPosition.camera(withLatitude: self.myLat, longitude: self.myLong, zoom: 15.0)
+    //                self.mapView.alpha = 1
+    //                self.mapView.camera = camera
+                }
+                
+            }
+        }
+    }
+    
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let locValue: CLLocationCoordinate2D = manager.location?.coordinate else { return }
+        print("locations = \(locValue.latitude) \(locValue.longitude)")
         
+        if(self.lat == 0.0){
+            self.lat = locValue.latitude
+            self.lng = locValue.longitude
+            
+            self.moveCamera(locValue.latitude, locValue.longitude)
+            self.setMyLocation(self.lat, self.lng)
+            self.myLocationImage.image = UIImage(named: "KnownLocation")
+        }
+        
+        self.lat = locValue.latitude
+        self.lng = locValue.longitude
+    }
+    
+    func setMyLocation(_ lat: Double,_ long: Double){
+        var position = CLLocationCoordinate2DMake(lat, long)
+        var marker = GMSMarker(position: position)
+        
+        let circleCenter = CLLocationCoordinate2D(latitude: lat, longitude: long)
+        
+        var rad = 500.0
+
+        
+        let circle = GMSCircle(position: circleCenter, radius: rad)
+        
+        circle.fillColor = UIColor(red: 113, green: 204, blue: 231, alpha: 0.1)
+        circle.strokeColor = .none
+        
+        circle.map = mapView
+        
+        marker.icon = UIImage(named: "MyLocationIcon")
+        marker.isFlat = true
+        marker.map = mapView
+        
+        self.myLocationMarker = marker
+        self.myLocationCircle = circle
+ 
     }
     
 

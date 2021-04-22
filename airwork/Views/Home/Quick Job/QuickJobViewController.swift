@@ -604,22 +604,15 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     
     
     
-    
+    var hasLoadedMap = false
     func setUpMap(){
         self.mapView.alpha = 0
         
         self.pickedUsers.removeAll()
         self.pickedUsers = getAppropriateUsers()
         
-        self.locationManager.requestAlwaysAuthorization()
-        self.locationManager.requestWhenInUseAuthorization()
-        
-        
-        if CLLocationManager.locationServicesEnabled() {
-            self.locationManager.delegate = self
-            self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-            self.locationManager.startUpdatingLocation()
-            
+        if !hasLoadedMap {
+            hasLoadedMap = true
             do {
                  // Set the map style by passing the URL of the local file.
                  if let styleURL = Bundle.main.url(forResource: "style", withExtension: "json") {
@@ -636,11 +629,22 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             } catch {
                  NSLog("One or more of the map styles failed to load. \(error)")
             }
-                    
-            mapView.settings.compassButton = true
-            mapView.settings.myLocationButton = false
-            mapView.layer.cornerRadius = 0
-            mapView.delegate = self
+        }
+                
+        mapView.settings.compassButton = true
+        mapView.settings.myLocationButton = false
+        mapView.layer.cornerRadius = 0
+        mapView.delegate = self
+        
+        self.locationManager.requestAlwaysAuthorization()
+        self.locationManager.requestWhenInUseAuthorization()
+        
+        
+        
+        if CLLocationManager.locationServicesEnabled() {
+            self.locationManager.delegate = self
+            self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+            self.locationManager.startUpdatingLocation()
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
                // Code you want to be delayed
