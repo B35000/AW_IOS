@@ -17,6 +17,7 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
     var job_group = HomeViewController.quickJobGroup()
     let COMPACT_VIEW_COUNT_THRESHOLD = 3 //1 in every 3 collections is compact
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    let constants = Constants.init()
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -53,7 +54,8 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
         }
         
         DispatchQueue.global(qos: .background).async { [self] in
-            let prices = getTagPricesForTags(selected_tags: job_item.tags_to_use)
+//            let prices = getTagPricesForTags(selected_tags: job_item.tags_to_use)
+            let prices = constants.getTagPricesForTags(selected_tags: job_item.tags_to_use, context: self.context)
 
             DispatchQueue.main.async {
                 let uid = Auth.auth().currentUser!.uid
@@ -61,8 +63,8 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
                 let curr = me?.phone?.country_currency as! String
                 
                 if !prices.isEmpty {
-                    var top = Int(getTopAverage(prices))
-                    var bottom = Int(getBottomAverage(prices))
+                    var top = Int(constants.getTopAverage(prices))
+                    var bottom = Int(constants.getBottomAverage(prices))
                     
                     if prices.count == 1 {
                         top = Int(prices[0])
@@ -125,131 +127,7 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
 
     
     
-    var at_most_2 = "At most 2 hours."
-    var two_to_four = "Around 2 to 4 hours."
-    var whole_day = "The whole day."
-    
-    func getTagPricesForTags(selected_tags: [String]) -> [Double]{
-        var tag_with_prices = [Double]()
-        
-        for selected_tag in selected_tags {
-            var global_t = self.getGlobalTagIfExists(tag_title: selected_tag)
-            if global_t != nil {
-                var associated_tag_prices = getAssociatedTagPrices(global_t!, selected_tags)
-                if tag_with_prices.count < associated_tag_prices.count {
-                    tag_with_prices.removeAll()
-                    tag_with_prices.append(contentsOf: associated_tag_prices)
-                }
-            }
-        }
-        
-        return tag_with_prices
-    }
-    
-    func getAssociatedTagPrices(_ global_tag: GlobalTag,_ selected_tags: [String]) -> [Double] {
-        var prices: [Double] = []
-        var price_ids: [String] = []
-        
-        var associates = self.getGlobalTagAssociatesIfExists(tag_title: global_tag.title!)
-//        print("tag associates for tag: \(global_tag.title!) -------------------------> \(associates.count)")
-        if !associates.isEmpty{
-            for associateTag in associates{
-                var price = Double(associateTag.pay_amount)
-                
-                
-                var json = associateTag.tag_associates
-                let decoder = JSONDecoder()
-                
-                
-                do{
-                    var shared_tags: [String] = []
-                    if json != nil {
-                        let jsonData = json!.data(using: .utf8)!
-                        let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
-                        for item in tags{
-                            if selected_tags.contains(item.tag_title) {
-                                if(!shared_tags.contains(item.tag_title)){
-                                    shared_tags.append(item.tag_title)
-                                }
-                            }
-                        }
-                    }
-                    
-                    if(associateTag.job_id != nil){
-                        print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
-                        
-                        if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
-                            //associated tag obj works
-                            var price = Double(associateTag.pay_amount)
-    //                        print("set \(price) for tag \(associateTag.title!)")
 
-                            if associateTag.no_of_days > 0 {
-                                price = price / Double(associateTag.no_of_days)
-                            }
-                            if associateTag.work_duration != nil {
-                                switch associateTag.work_duration {
-                                    case two_to_four:
-                                        price = price / 2
-                                    case two_to_four:
-                                        price = price / 4
-                                    default:
-                                        price = price / 1
-                                }
-                            }
-                            
-                            if(!price_ids.contains(associateTag.job_id!)){
-                                prices.append(price)
-                                price_ids.append(associateTag.job_id!)
-                            }
-                        }
-                    }
-                    
-                }catch {
-                    
-                }
-            }
-        }
-        
-        
-        return prices
-    }
-    
-    func getTopAverage(_ prices: [Double]) -> Double {
-        let sortedPrices = prices.sorted(by: >)
-        
-        var number_of_items = Int(Double(prices.count) * 0.6)
-        
-        var total = 0.0
-        for price in sortedPrices.prefix(number_of_items) {
-            total += price
-        }
-        
-        if total.isZero {
-            return 0.0
-        }
-        
-        return total / Double(number_of_items)
-    }
-    
-    
-    func getBottomAverage(_ prices: [Double]) -> Double {
-        let sortedPrices = prices.sorted(by: <)
-        
-        var number_of_items = Int(Double(prices.count) * 0.6)
-        
-        var total = 0.0
-        for price in sortedPrices.prefix(number_of_items) {
-            total += price
-        }
-        
-        if total.isZero {
-            return 0.0
-        }
-        
-        return total / Double(number_of_items)
-    }
-    
-    
     func getGlobalTagsIfExists() -> [GlobalTag]{
         do{
             let request = GlobalTag.fetchRequest() as NSFetchRequest<GlobalTag>
@@ -267,44 +145,7 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
     
     
     
-    func getGlobalTagAssociatesIfExists(tag_title: String) -> [JobTag]{
-        do{
-            let request = JobTag.fetchRequest() as NSFetchRequest<JobTag>
-            let predic = NSPredicate(format: "title == %@ && global == \(NSNumber(value: true))", tag_title)
-            request.predicate = predic
-            
-            let items = try context.fetch(request)
-            
-            if(!items.isEmpty){
-                return items
-            }
-            
-        }catch {
-            
-        }
-        
-        return []
-    }
-    
-    func getGlobalTagIfExists(tag_title: String) -> GlobalTag?{
-        do{
-            let request = GlobalTag.fetchRequest() as NSFetchRequest<GlobalTag>
-            let predic = NSPredicate(format: "title == %@", tag_title)
-            request.predicate = predic
-            
-            let items = try context.fetch(request)
-            
-            if(!items.isEmpty){
-                return items[0]
-            }
-            
-        }catch {
-            
-        }
-        
-        return nil
-    }
-    
+
     func getAccountIfExists(uid: String) -> Account? {
         do{
             let request = Account.fetchRequest() as NSFetchRequest<Account>
@@ -323,17 +164,5 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
         
         return nil
     }
-    
-    struct json_tag: Codable{
-        var no_of_days = 0
-        var tag_class = ""
-        var tag_title = ""
-        var work_duration = ""
-    }
-    
-    struct json_tag_array: Codable{
-        var tags: [json_tag] = []
-    }
-    
-    
+
 }

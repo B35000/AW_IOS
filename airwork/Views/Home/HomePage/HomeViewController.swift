@@ -11,6 +11,7 @@ import CoreData
 import GoogleMaps
 import MapKit
 import CoreLocation
+import UserNotifications
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, GMSMapViewDelegate, CLLocationManagerDelegate,  UICollectionViewDelegate, UICollectionViewDataSource, UITextFieldDelegate{
     @IBOutlet weak var newJobCardView: UIView!
@@ -145,6 +146,18 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         print("is account type airworker? \(self.amIAirworker())")
         setUpViews()
+        
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
+            if success {
+                print("All set!")
+                
+            } else if let error = error {
+                print(error.localizedDescription)
+            }
+        }
+        
+        
+        
     }
     
     
@@ -1874,6 +1887,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func setAllUsersOnMap(){
         var bounds = GMSCoordinateBounds()
         var position = CLLocationCoordinate2DMake(self.myLat, self.myLong)
+        if self.myLat != 0.0 && self.myLong != 0.0 {
+            bounds = bounds.includingCoordinate(position)
+        }
         
         for user in pickedUsers{
             var their_loc = getPubUsersLocation(user)
@@ -1899,7 +1915,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 addedMarkers[user] = marker
                 
                 var position2 = CLLocationCoordinate2DMake(their_loc!.latitude, their_loc!.longitude)
+            
                 bounds = bounds.includingCoordinate(position2)
+                
             }
         }
         
@@ -2399,7 +2417,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var whole_day = "The whole day."
     
     func calculatePriceFromTag(){
-        let prices = getTagPricesForTags(selected_tags: selectedTags)
+        let prices = constants.getTagPricesForTags(selected_tags: selectedTags, context: self.context)
         
         let uid = Auth.auth().currentUser!.uid
         let me = self.getAccountIfExists(uid: uid)
@@ -2408,8 +2426,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         if !prices.isEmpty {
             print("prices being used for calculation:--------------> \(prices.count)")
            
-            var top = Int(getTopAverage(prices))
-            var bottom = Int(getBottomAverage(prices))
+            var top = Int(constants.getTopAverage(prices))
+            var bottom = Int(constants.getBottomAverage(prices))
             
             if prices.count == 1 {
                 top = Int(prices[0])
@@ -2428,163 +2446,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
     }
     
-    func getTagPricesForTags(selected_tags: [String]) -> [Double]{
-        var tag_with_prices = [Double]()
-        
-        for selected_tag in selected_tags {
-            var global_t = self.getGlobalTagIfExists(tag_title: selected_tag)
-            if global_t != nil {
-                var associated_tag_prices = getAssociatedTagPrices(global_t!, selected_tags)
-                print("tag prices for: \(global_t!.title!) -------------------------> \(associated_tag_prices.count)")
-                if tag_with_prices.count < associated_tag_prices.count {
-                    tag_with_prices.removeAll()
-                    tag_with_prices.append(contentsOf: associated_tag_prices)
-                }
-            }
-        }
-        
-        return tag_with_prices
-    }
-    
-    func getAssociatedTagPrices(_ global_tag: GlobalTag,_ selected_tags: [String]) -> [Double] {
-        var prices: [Double] = []
-        var price_ids: [String] = []
-        
-        var associates = self.getGlobalTagAssociatesIfExists(tag_title: global_tag.title!)
-//        print("tag associates for tag: \(global_tag.title!) -------------------------> \(associates.count)")
-        if !associates.isEmpty{
-            for associateTag in associates{
-                var price = Double(associateTag.pay_amount)
-                
-                
-                var json = associateTag.tag_associates
-                let decoder = JSONDecoder()
-                let jsonData = json!.data(using: .utf8)!
-                
-                do{
-                    let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
-                    var shared_tags: [String] = []
-                    for item in tags{
-                        if selected_tags.contains(item.tag_title) {
-                            if(!shared_tags.contains(item.tag_title)){
-                                shared_tags.append(item.tag_title)
-                            }
-                        }
-                    }
-                    
-                    print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
-                    
-                    if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
-                        //associated tag obj works
-                        var price = Double(associateTag.pay_amount)
-//                        print("set \(price) for tag \(associateTag.title!)")
-
-                        if associateTag.no_of_days > 0 {
-                            price = price / Double(associateTag.no_of_days)
-                        }
-                        if associateTag.work_duration != nil {
-                            switch associateTag.work_duration {
-                                case two_to_four:
-                                    price = price / 2
-                                case two_to_four:
-                                    price = price / 4
-                                default:
-                                    price = price / 1
-                            }
-                        }
-                        
-                        if(!price_ids.contains(associateTag.job_id!)){
-                            prices.append(price)
-                            price_ids.append(associateTag.job_id!)
-                        }
-                    }
-                    
-                }catch {
-                    
-                }
-            }
-        }
-        
-        
-        return prices
-    }
-    
-    func getTopAverage(_ prices: [Double]) -> Double {
-        let sortedPrices = prices.sorted(by: >)
-        
-        var number_of_items = Int(Double(prices.count) * 0.6)
-        
-        var total = 0.0
-        for price in sortedPrices.prefix(number_of_items) {
-            total += price
-        }
-        
-        if total.isZero {
-            return 0.0
-        }
-        
-        return total / Double(number_of_items)
-    }
-    
-    
-    func getBottomAverage(_ prices: [Double]) -> Double {
-        let sortedPrices = prices.sorted(by: <)
-        
-        var number_of_items = Int(Double(prices.count) * 0.6)
-        
-        var total = 0.0
-        for price in sortedPrices.prefix(number_of_items) {
-            total += price
-        }
-        
-        if total.isZero {
-            return 0.0
-        }
-        
-        return total / Double(number_of_items)
-    }
-    
-    
-    func getGlobalTagsIfExists() -> [GlobalTag]{
-        do{
-            let request = GlobalTag.fetchRequest() as NSFetchRequest<GlobalTag>
-            let items = try context.fetch(request)
-            
-            if(!items.isEmpty){
-                return items
-            }
-        }catch {
-            
-        }
-        
-        return []
-    }
-    
-    
-    
-    func getGlobalTagAssociatesIfExists(tag_title: String) -> [JobTag]{
-        do{
-            let request = JobTag.fetchRequest() as NSFetchRequest<JobTag>
-            let predic = NSPredicate(format: "title == %@ && global == \(NSNumber(value: true))", tag_title)
-            request.predicate = predic
-            
-            let items = try context.fetch(request)
-            
-            if(!items.isEmpty){
-                return items
-            }
-            
-        }catch {
-            
-        }
-        
-        return []
-    }
-    
-    
-//    struct json_tag_array: Codable{
-//        var tags: [json_tag] = []
-//    }
     
     struct json_tag: Codable{
         var no_of_days = 0
@@ -2592,6 +2453,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var tag_title = ""
         var work_duration = ""
     }
+    
+
+    
+    
+
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         self.view.endEditing(true)
@@ -2653,7 +2519,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         other_suggestions.append(contentsOf: selectedTags)
         
         if typedItem != "" {
-            let all_g_tags = getGlobalTagsIfExists()
+            let all_g_tags = constants.getGlobalTagsIfExists(context: context)
             for tag in all_g_tags {
                 if tag.title!.starts(with: typedItem.lowercased()){
                     other_suggestions.append(tag.title!)
@@ -2687,7 +2553,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 }
             }
         } else {
-            let all_g_tags = getGlobalTagsIfExists()
+            let all_g_tags = constants.getGlobalTagsIfExists(context: context)
             for tag in all_g_tags {
                 if !other_suggestions.contains(tag.title!){
                     other_suggestions.append(tag.title!)
@@ -2716,6 +2582,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         return []
     }
+
+    
     
     
     struct json_tag_array: Codable{
@@ -5380,7 +5248,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var now = Int64(round(NSDate().timeIntervalSince1970 * 1000))
         var last_update_stored = self.getAppDataIfExists()!.global_tag_data_update_time
         
-        let all_g_tags = self.getGlobalTagsIfExists()
+        let all_g_tags = constants.getGlobalTagsIfExists(context: context)
         if all_g_tags.isEmpty{
             now = 0
         }
@@ -6201,6 +6069,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
 
         return filtered_items
     }
+    
+    
+    
     
     
     func getUserInviteIfExists(link_id: String) -> Invite? {

@@ -35,8 +35,94 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         GIDSignIn.sharedInstance()?.clientID = "669299184673-n5eliiss0c8hf6iejsleehtibok9l8sl.apps.googleusercontent.com"
         GIDSignIn.sharedInstance().delegate = self
         
+        
+        UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
+        
+        
         return true
     }
+    
+    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("doing bacground work!!")
+        let uid = Auth.auth().currentUser!.uid
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+        let db = Firestore.firestore()
+        var constants = Constants.init()
+        
+        var notificationsReference = db.collection(constants.users_ref).document(uid).collection(constants.notifications)
+        
+        if amIAirworker(context: context){
+            notificationsReference = db.collection(constants.airworkers_ref).document(uid).collection(constants.notifications)
+        }
+        
+        var app = self.getAppDataIfExists(context: context)
+        let time = Int(round(NSDate().timeIntervalSince1970 * 1000))
+        
+        var last_open_time = app?.global_tag_data_update_time ?? 0
+        
+        notificationsReference.getDocuments() { (querySnapshot, err) in
+            if let err = err {
+                print("Error getting documents: \(err)")
+            } else {
+                for document in querySnapshot!.documents {
+                    let message = document.data()["message"] as! String
+                    let time = document.data()["time"] as! Int
+                    let user_name = document.data()["user_name"] as! String
+                    let user_id = document.data()["user_id"] as! String
+                    let job_id = document.data()["job_id"] as! String
+                    let notif_id = document.data()["notif_id"] as! String
+                    let seen = document.data()["seen"] as? Int
+                    
+                    if(time > last_open_time) {
+                        let content = UNMutableNotificationContent()
+                        content.title = "\(user_name)"
+                        content.subtitle = "\(message)"
+                        content.sound = UNNotificationSound.default
+                        // show this notification five seconds from now
+                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 6, repeats: false)
+                        // choose a random identifier
+                        let request = UNNotificationRequest(identifier: notif_id, content: content, trigger: trigger)
+                        // add our notification request
+                        UNUserNotificationCenter.current().add(request)
+                    }
+                    
+                }
+            }
+        }
+        
+        
+        
+    }
+    
+    func getAppDataIfExists(context: NSManagedObjectContext) -> AppData? {
+        do{
+            let request = AppData.fetchRequest() as NSFetchRequest<AppData>
+            let items = try context.fetch(request)
+            
+            if(!items.isEmpty){
+                return items[0]
+            }else{
+                let new_app_data = AppData(context: context)
+                return new_app_data
+            }
+            
+        }catch {
+            
+        }
+        
+        return nil
+    }
+    
+    func amIAirworker(context: NSManagedObjectContext) -> Bool{
+        let app_data = self.getAppDataIfExists(context: context)
+        
+        if app_data!.is_airworker {
+            return true
+        }
+        
+        return false
+    }
+    
     
     @available(iOS 9.0, *)
     func application(_ application: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any])
