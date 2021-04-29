@@ -15,7 +15,7 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
     var whenQuickJobTapped : ((_ value: Int) -> Void)?
     var pos = 0
     var job_group = HomeViewController.quickJobGroup()
-    let COMPACT_VIEW_COUNT_THRESHOLD = 3 //1 in every 3 collections is compact
+    let COMPACT_VIEW_COUNT_THRESHOLD = 2 //1 in every 3 collections is compact
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     let constants = Constants.init()
     
@@ -56,6 +56,8 @@ class QuickJobTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollec
         DispatchQueue.global(qos: .background).async { [self] in
 //            let prices = getTagPricesForTags(selected_tags: job_item.tags_to_use)
             let prices = constants.getTagPricesForTags(selected_tags: job_item.tags_to_use, context: self.context)
+            
+            print("-----------------------prices being used for quick job: \(job_item.jobTitle):--------------> \(prices)")
 
             DispatchQueue.main.async {
                 let uid = Auth.auth().currentUser!.uid

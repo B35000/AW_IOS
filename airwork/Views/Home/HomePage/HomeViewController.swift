@@ -143,6 +143,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
+        print("Running test for prices------------------------------------------------------------------------------------------")
+        let prices = constants.getTagPricesForTags(selected_tags: ["developer","android","ios","mobile", "web","app"], context: self.context)
+        print("prices chosen for use----------- \(prices)")
+        print("Running test for prices------------------------------------------------------------------------------------------")
         
         print("is account type airworker? \(self.amIAirworker())")
         setUpViews()
@@ -155,6 +159,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 print(error.localizedDescription)
             }
         }
+        
         
         
         
@@ -1247,7 +1252,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.moveCamera(self.myLat, self.myLong)
                 self.setMyLocation(self.myLat, self.myLong)
                 self.addJobsOnMap()
-            
+                
+                self.constants.myLat = self.myLat
+                self.constants.myLng = self.myLong
+                self.setUpQuickJobs()
             }
             self.myLat =
 //                -1.286389
@@ -1264,6 +1272,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.moveCamera(self.myLat, self.myLong)
                 self.setMyLocation(self.myLat, self.myLong)
                 self.setAllUsersOnMap()
+                
+                self.constants.myLat = self.myLat
+                self.constants.myLng = self.myLong
+                self.setUpQuickJobs()
             }
             self.myLat = lat
             self.myLong = lng
@@ -2098,7 +2110,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             print("user \(uid) : ratings: \(user_ratings.count) , applications: \(users_applications.count)")
             
             if selectedUsers.contains(uid){
-                cell.containerCardView.backgroundColor = UIColor.darkGray
+                let c = UIColor(named: "PickedUserContainerColor")
+                cell.containerCardView.backgroundColor = c
+                
                 
 //                cell.mapIconView.image = UIImage(named: "PickedUserIcon")
             }else{
@@ -2424,7 +2438,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         let curr = me?.phone?.country_currency as! String
         
         if !prices.isEmpty {
-            print("prices being used for calculation:--------------> \(prices.count)")
+            
            
             var top = Int(constants.getTopAverage(prices))
             var bottom = Int(constants.getBottomAverage(prices))
@@ -2491,6 +2505,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     func setUpQuickJobs(){
         quickJobsTableView.delegate = self
         quickJobsTableView.dataSource = self
+        
+        quickJobsTableView.reloadData()
     }
     
     var selectedTags: [String] = []
@@ -2620,7 +2636,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         var g1item1 = quickJobItem()
         g1item1.jobTitle = "House Cleaning"
-        g1item1.tags_to_use = ["cleaning","house","washing"]
+        g1item1.tags_to_use = ["cleaning","house", "home", "labour"]
         var g1item2 = quickJobItem()
         g1item2.jobTitle = "Laundry Work"
         g1item2.tags_to_use = ["cleaning","laundry","washing","clothes"]
@@ -2647,8 +2663,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         g2item2.tags_to_use = ["software","debugging","engineer"]
         var g2item3 = quickJobItem()
         g2item3.jobTitle = "App Developer"
-        g2item3.tags_to_use = ["developer","android","ios","mobile","app"]
-        group2.items = [g2item1,g2item2,g2item3]
+        g2item3.tags_to_use = ["developer","android","ios","mobile", "web","app"]
+        var g2item4 = quickJobItem()
+        g2item4.jobTitle = "Banner Design"
+        g2item4.tags_to_use = ["banner","design","illustration","graphics","app"]
+        group2.items = [g2item3,g2item2,g2item1,g2item4]
 
         
         var group3 = quickJobGroup()
@@ -2662,8 +2681,40 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         g3item2.tags_to_use = ["ship","item","delivery","take"]
         group3.items = [g3item1,g3item2]
         
+        var group4 = quickJobGroup()
+        group4.title = "Timesaver Work"
         
-        return [group1,group2,group3]
+        var g4item1 = quickJobItem()
+        g4item1.jobTitle = "Spreadsheet Work"
+        g4item1.tags_to_use = ["spreadsheet","excel","typing","review", "editing", "editing"]
+        var g4item2 = quickJobItem()
+        g4item2.jobTitle = "Job Referrals"
+        g4item2.tags_to_use = ["referral","sourcing","delivery","find"]
+        group4.items = [g4item1,g4item2]
+        
+        
+        var group5 = quickJobGroup()
+        group5.title = "Scholar Work"
+        
+        var g5item1 = quickJobItem()
+        g5item1.jobTitle = "Translating Work"
+        g5item1.tags_to_use = ["translate","work","interpret","transcribe", "transliterate"]
+        var g5item2 = quickJobItem()
+        g5item2.jobTitle = "Peer Review"
+        g5item2.tags_to_use = ["peer","review","writing","analysis","documentation"]
+        var g5item3 = quickJobItem()
+        g5item3.jobTitle = "Literature Work"
+        g5item3.tags_to_use = ["literature","writing","work","documentation"]
+        var g5item4 = quickJobItem()
+        g5item4.jobTitle = "Creative Writing"
+        g5item4.tags_to_use = ["creative","writing"]
+        var g5item5 = quickJobItem()
+        g5item5.jobTitle = "Article Work"
+        g5item5.tags_to_use = ["article","writing","documentation"]
+        group5.items = [g5item1,g5item2,g5item3,g5item4,g5item5]
+        
+        
+        return [group5,group2,group3,group4,group1]
         
     }
     
@@ -3891,7 +3942,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                                 }
                                 else{
                                     var job_applicants = self.getJobApplicantsIfExists(job_id: job_id)
-                                    print("applicants contained in -------------\(job_id) are \(job_applicants.count)")
+//                                    print("applicants contained in -------------\(job_id) are \(job_applicants.count)")
                                     if job_applicants.isEmpty{
                                         if !self.setJobListeners.keys.contains(job_id) {
                                             self.listenForJobInfo(job_id: job_id, country: country_name, include_metas: true)
@@ -6048,7 +6099,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         var my_id = Auth.auth().currentUser!.uid
 
         for item in ratings {
-            print("filtering rating:-------------> \(item.rating_id!)")
+//            print("filtering rating:-------------> \(item.rating_id!)")
             let job_id = item.job_id
             
             let job = self.getJobIfExists(job_id: job_id!)

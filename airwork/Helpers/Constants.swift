@@ -160,18 +160,61 @@ struct Constants{
     var at_most_2 = "At most 2 hours."
     var two_to_four = "Around 2 to 4 hours."
     var whole_day = "The whole day."
+    var myLat = -1.274483
+    var myLng = 36.785340
     
     func getTagPricesForTags(selected_tags: [String], context: NSManagedObjectContext) -> [Double]{
-        var tag_with_prices = [Double]()
+        var tag_with_prices: [Double] = [Double]()
+        var near_tags_with_their_prices:  [String: [Double]] = [String: [Double]]()
+        var mid_tags_with_their_prices:  [String: [Double]] = [String: [Double]]()
+        var far_tags_with_their_prices:  [String: [Double]] = [String: [Double]]()
         
         for selected_tag in selected_tags {
             var global_t = self.getGlobalTagIfExists(tag_title: selected_tag, context: context)
+            
             if global_t != nil {
-                var associated_tag_prices = getAssociatedTagPrices(global_t!, selected_tags, context: context)
-//                print("tag prices for: \(global_t!.title!) -------------------------> \(associated_tag_prices.count)")
-                if tag_with_prices.count < associated_tag_prices.count {
+                var (near_tag_prices, mid_tag_prices, far_tag_prices) = getAssociatedTagPrices(global_t!, selected_tags, context: context)
+                print("near tag prices associated for: \(global_t!.title!) -------------------------> \(near_tag_prices)")
+                print("mid tag prices associated for: \(global_t!.title!) -------------------------> \(mid_tag_prices)")
+                print("far tag prices associated for: \(global_t!.title!) -------------------------> \(far_tag_prices)")
+                
+                near_tags_with_their_prices[global_t!.title!] = near_tag_prices
+                mid_tags_with_their_prices[global_t!.title!] = mid_tag_prices
+                far_tags_with_their_prices[global_t!.title!] = far_tag_prices
+                
+//                if tag_with_prices.count < associated_tag_prices.count {
+//                    tag_with_prices.removeAll()
+//                    tag_with_prices.append(contentsOf: associated_tag_prices)
+//                }
+            }
+        }
+        
+        if !near_tags_with_their_prices.isEmpty {
+            for item in near_tags_with_their_prices.values {
+                if tag_with_prices.count < item.count {
                     tag_with_prices.removeAll()
-                    tag_with_prices.append(contentsOf: associated_tag_prices)
+                    tag_with_prices.append(contentsOf: item)
+                    print("using near items \(item)")
+                }
+            }
+        }
+        
+        if !mid_tags_with_their_prices.isEmpty && tag_with_prices.isEmpty {
+            for item in mid_tags_with_their_prices.values {
+                if tag_with_prices.count < item.count {
+                    tag_with_prices.removeAll()
+                    tag_with_prices.append(contentsOf: item)
+                    print("using mid items \(item)")
+                }
+            }
+        }
+        
+        if !far_tags_with_their_prices.isEmpty && tag_with_prices.isEmpty {
+            for item in far_tags_with_their_prices.values {
+                if tag_with_prices.count < item.count {
+                    tag_with_prices.removeAll()
+                    tag_with_prices.append(contentsOf: item)
+                    print("using far items \(item)")
                 }
             }
         }
@@ -179,12 +222,19 @@ struct Constants{
         return tag_with_prices
     }
     
-    func getAssociatedTagPrices(_ global_tag: GlobalTag,_ selected_tags: [String], context: NSManagedObjectContext) -> [Double] {
-        var prices: [Double] = []
-        var price_ids: [String] = []
+    func getAssociatedTagPrices(_ global_tag: GlobalTag,_ selected_tags: [String],
+                                context: NSManagedObjectContext) -> ([Double], [Double], [Double]) {
+        var near_prices: [Double] = []
+        var near_price_ids: [String] = []
+        
+        var mid_prices: [Double] = []
+        var mid_price_ids: [String] = []
+        
+        var far_prices: [Double] = []
+        var far_price_ids: [String] = []
         
         var associates = self.getGlobalTagAssociatesIfExists(tag_title: global_tag.title!, context: context)
-//        print("tag associates for tag: \(global_tag.title!) -------------------------> \(associates.count)")
+//        print("tag associates for tag: \(global_tag.title!) -------------------------> \(associates)")
         if !associates.isEmpty{
             for associateTag in associates{
                 var price = Double(associateTag.pay_amount)
@@ -198,37 +248,86 @@ struct Constants{
                     let tags: [json_tag] =  try decoder.decode(json_tag_array.self, from: jsonData).tags
                     var shared_tags: [String] = []
                     for item in tags{
+                        
                         if selected_tags.contains(item.tag_title) {
                             if(!shared_tags.contains(item.tag_title)){
                                 shared_tags.append(item.tag_title)
                             }
                         }
                     }
+//
+//                print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
+//
+//                    print("adding price to far_prices")
+                    var price_ids = "far_price_ids"
+                    var prices = "far_prices"
                     
-                    print("shared tags for fumigate: \(associateTag.job_id!): \(shared_tags)")
+                    if(myLat != 0.0 && myLng != 0.0 && associateTag.location_latitude != 0.0 && associateTag.location_longitude != 0.0){
+//                        print("my location is being factored,")
+                        var location_lat = associateTag.location_latitude
+                        var location_lng = associateTag.location_longitude
+                        
+                        let coordinate₀ = CLLocation(latitude: location_lat, longitude: location_lng)
+                        let coordinate₁ = CLLocation(latitude: myLat, longitude: myLng)
+                        let distanceInMeters = coordinate₀.distance(from: coordinate₁)
                     
-                    if (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) {
+//                        print("distance for tag: \(associateTag.title) to me: \(distanceInMeters)")
+                        if distanceInMeters <= 1500.0 {
+//                            print("adding price to near_prices instead")
+                            price_ids = "near_price_ids"
+                            prices = "near_prices"
+                        }else if distanceInMeters <= 4000.0 {
+//                            print("adding price to mid_prices instead")
+                            price_ids = "mid_price_ids"
+                            prices = "mid_prices"
+                        }
+                    }
+                    
+                    
+                    if ( (shared_tags.count == 1 && selected_tags.count == 1) || (shared_tags.count >= 2) ){
                         //associated tag obj works
                         var price = Double(associateTag.pay_amount)
-//                        print("set \(price) for tag \(associateTag.title!)")
+//                        print("set \(price) for tag \(associateTag.title!) : \(associateTag.job_id)")
 
                         if associateTag.no_of_days > 0 {
-                            price = price / Double(associateTag.no_of_days)
-                        }
-                        if associateTag.work_duration != nil {
+                            price = ((price / Double(associateTag.no_of_days)) / 4 )
+                        }else if associateTag.work_duration != nil {
                             switch associateTag.work_duration {
+                                case durationless:
+                                    price = price / 1
+                                case at_most_2:
+                                    price = price / 1
                                 case two_to_four:
                                     price = price / 2
-                                case two_to_four:
-                                    price = price / 4
                                 default:
-                                    price = price / 1
+                                    price = price / 4
                             }
                         }
                         
-                        if(!price_ids.contains(associateTag.job_id!)){
-                            prices.append(price)
-                            price_ids.append(associateTag.job_id!)
+                        
+                        if prices == "far_prices" {
+                            if(!far_price_ids.contains(associateTag.job_id!)){
+                                far_prices.append(price)
+                                far_price_ids.append(associateTag.job_id!)
+                                
+//                                print("---changed to \(price) into FAR")
+                            }
+                        }else if prices == "mid_prices"{
+                            if(!mid_price_ids.contains(associateTag.job_id!)){
+                                mid_prices.append(price)
+                                mid_price_ids.append(associateTag.job_id!)
+                                
+//                                print("---changed to \(price) into MID")
+                            }
+                            
+                        }else{
+                            if(!near_price_ids.contains(associateTag.job_id!)){
+                                near_prices.append(price)
+                                near_price_ids.append(associateTag.job_id!)
+                                
+//                                print("---changed to \(price) into NEAR")
+                            }
+                            
                         }
                     }
                     
@@ -239,7 +338,15 @@ struct Constants{
         }
         
         
-        return prices
+        
+//        if !near_prices.isEmpty {
+//            return near_prices
+//
+//        }else if !mid_prices.isEmpty {
+//            return mid_prices
+//        }
+        
+        return (near_prices, mid_prices, far_prices)
     }
     
     struct json_tag: Codable{

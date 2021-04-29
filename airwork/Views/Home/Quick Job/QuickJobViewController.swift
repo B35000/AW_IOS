@@ -41,6 +41,11 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     @IBOutlet weak var jobLocationSwitch: UISwitch!
     
     @IBOutlet weak var myLocationImage: UIImageView!
+    @IBOutlet weak var changeLocationContainer: UIView!
+    @IBOutlet weak var changeLocationImage: UIImageView!
+    @IBOutlet weak var cancelChangeLocContainer: UIView!
+    @IBOutlet weak var mapPinImage: UIImageView!
+    
     
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -58,6 +63,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     
     var myLocationMarker: GMSMarker?
     var myLocationCircle: GMSCircle?
+    var myJobLocationMarker: GMSMarker?
     var addedMarkers = [String : GMSMarker]()
     var addedCircles = [String : GMSCircle]()
     var addedLines = [String : [GMSPolyline]]()
@@ -481,7 +487,7 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Change `2.0` to the desired number of seconds.
                // Code you want to be delayed
 //                let camera = GMSCameraPosition.camera(withLatitude: self.myLat, longitude: self.myLong, zoom: 15.0)
-//                self.mapView.alpha = 1
+                self.mapView.alpha = 1
 //                self.mapView.camera = camera
             }
             
@@ -518,8 +524,23 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
             
             if (self.job!.location_lat == 0.0 && self.job!.location_long == 0.0) {
                 self.jobLocationSwitch.isOn = false
+                self.changeLocationContainer.isHidden = true
             }else{
                 self.jobLocationSwitch.isOn = true
+                self.changeLocationContainer.isHidden = false
+                
+                self.setJobLocation(self.job!.location_lat, self.job!.location_long)
+                self.moveCamera(self.job!.location_lat, self.job!.location_long)
+                
+                let coordinate₀ = CLLocation(latitude: self.job!.location_lat, longitude: self.job!.location_long)
+                let coordinate₁ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+                
+                if(getDistance(loc1: coordinate₀, loc2: coordinate₁) < 150){
+                    hideMyLocation()
+                }else{
+                    showMyLocation()
+                }
+                
             }
         }
         self.myLat = locValue.latitude
@@ -529,8 +550,31 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     
     @IBAction func whenLocationSwitchTapped(_ sender: UISwitch) {
         if sender.isOn {
+            self.changeLocationContainer.isHidden = false
+            
+            showJobLocation()
             self.setMyLocationInJob(self.myLat, self.myLong)
+            self.setJobLocation(self.myLat, self.myLong)
+//            self.moveCamera(self.myLat, self.myLong)
+            
+            var coordinate₀ = CLLocation(latitude: self.job!.location_lat, longitude: self.job!.location_long)
+            let coordinate₁ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+            
+            if self.job!.location_lat == 0.0 && self.job!.location_long == 0.0 {
+                hideMyLocation()
+            }else{
+                if(getDistance(loc1: coordinate₀, loc2: coordinate₁) < 150){
+                    hideMyLocation()
+                }else{
+                    showMyLocation()
+                }
+            }
+            
         }else{
+            self.changeLocationContainer.isHidden = true
+            showMyLocation()
+            hideJobLocation()
+            
             let db = Firestore.firestore()
             let uid = Auth.auth().currentUser!.uid
             
@@ -595,6 +639,39 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     
     }
     
+    func setJobLocation(_ lat: Double,_ long: Double){
+        var position = CLLocationCoordinate2DMake(lat, long)
+        
+        if self.myJobLocationMarker != nil {
+            self.myJobLocationMarker?.position = position
+            return
+        }
+        
+        var marker = GMSMarker(position: position)
+        
+        
+        marker.icon = UIImage(named: "JobLocation")
+        marker.map = mapView
+        
+        self.myJobLocationMarker = marker
+    }
+    
+    func hideJobLocation(){
+        self.myJobLocationMarker?.map = nil
+    }
+    
+    func showJobLocation(){
+        self.myJobLocationMarker?.map = mapView
+    }
+    
+    func hideMyLocation(){
+        self.myLocationMarker?.map = nil
+    }
+    
+    func showMyLocation(){
+        self.myLocationMarker?.map = mapView
+    }
+    
     func setMyLocationInJob(_ lat: Double,_ lng: Double){
         
         guard let filePath = Bundle.main.path(forResource: "maps-Info", ofType: "plist") else {
@@ -629,6 +706,10 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
                     DispatchQueue.main.async {
                         let db = Firestore.firestore()
                         let uid = Auth.auth().currentUser!.uid
+                        
+                        self.job?.location_lat = lat
+                        self.job?.location_long = lng
+                        self.job?.location_desc = location_desc
                         
                         let location: [String: Any] = [
                             "latitude" : lat,
@@ -681,6 +762,66 @@ class QuickJobViewController: UIViewController, UICollectionViewDelegate, UIColl
     }
     
 
+    var isChangingLocation = false
+    @IBAction func whenChangeLocationTapped(_ sender: Any) {
+        if !isChangingLocation {
+            isChangingLocation = true
+            mapPinImage.isHidden = false
+            changeLocationImage.image = UIImage(named: "DoneChangingJobLocation")
+            
+            var curr_loc = mapView.camera.target
+            mapView.animate(to: GMSCameraPosition(latitude: curr_loc.latitude, longitude: curr_loc.longitude, zoom: mapView.camera.zoom + 0.5))
+            
+            jobLocationSwitch.isEnabled = false
+            hideJobLocation()
+            cancelChangeLocContainer.isHidden = false
+            
+        } else {
+            isChangingLocation = false
+            mapPinImage.isHidden = true
+            changeLocationImage.image = UIImage(named: "ChangeLocationIcon")
+            showJobLocation()
+            
+            var new_loc = mapView.camera.target
+            setMyLocationInJob(new_loc.latitude, new_loc.longitude)
+            setJobLocation(new_loc.latitude, new_loc.longitude)
+            
+            let coordinate₀ = CLLocation(latitude: self.job!.location_lat, longitude: self.job!.location_long)
+            let coordinate₁ = CLLocation(latitude: self.myLat, longitude: self.myLong)
+            
+            if(getDistance(loc1: coordinate₀, loc2: coordinate₁) < 150){
+                hideMyLocation()
+            }else{
+                showMyLocation()
+            }
+            
+        
+            
+            mapView.animate(to: GMSCameraPosition(latitude: new_loc.latitude, longitude: new_loc.longitude, zoom: mapView.camera.zoom + 0.5))
+            
+            jobLocationSwitch.isEnabled = true
+            
+            var curr_loc = mapView.camera.target
+            mapView.animate(to: GMSCameraPosition(latitude: curr_loc.latitude, longitude: curr_loc.longitude, zoom: mapView.camera.zoom + 0.5))
+            
+            cancelChangeLocContainer.isHidden = true
+        }
+    }
+    
+    
+    @IBAction func whenCancelChangeLocationTapped(_ sender: Any) {
+        isChangingLocation = false
+        mapPinImage.isHidden = true
+        changeLocationImage.image = UIImage(named: "ChangeLocationIcon")
+        jobLocationSwitch.isEnabled = true
+        
+        cancelChangeLocContainer.isHidden = true
+        
+        showJobLocation()
+        var curr_loc = mapView.camera.target
+        mapView.animate(to: GMSCameraPosition(latitude: curr_loc.latitude, longitude: curr_loc.longitude, zoom: mapView.camera.zoom - 0.5))
+    }
+    
     
     
     func setAllUsersOnMap(){
