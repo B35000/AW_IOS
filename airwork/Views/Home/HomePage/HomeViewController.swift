@@ -2085,27 +2085,27 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if user_ratings.isEmpty{
                 cell.ratingsLabel.text = "New!."
             }else if user_ratings.count == 1 {
-                cell.ratingsLabel.text = "\(user_ratings.count) Rated."
+                cell.ratingsLabel.text = "\(user_ratings.count) Ratings."
             }else{
-                cell.ratingsLabel.text = "\(user_ratings.count) Rated."
+                cell.ratingsLabel.text = "\(user_ratings.count) Ratings."
             }
             
             if users_applications.isEmpty{
                 cell.applicationsLabel.text = "New!."
             }else if users_applications.count == 1 {
-                cell.applicationsLabel.text = "\(users_applications.count) Applied."
+                cell.applicationsLabel.text = "\(users_applications.count) Applications."
             }else{
-                cell.applicationsLabel.text = "\(users_applications.count) Applied."
+                cell.applicationsLabel.text = "\(users_applications.count) Applications."
             }
             
-//            var date = Date(timeIntervalSince1970: TimeInterval(shared_pub_user!.last_online) / 1000)
-//            var timeOffset = date.offset(from: Date())
-//            if timeOffset == "" {
-//                timeOffset = Date().offset(from: date)
-//                cell.lastOnlineLabel.text = "Active: \(timeOffset) ago."
-//            }else{
-//                cell.lastOnlineLabel.text = "Active: \(timeOffset) ago."
-//            }
+            var date = Date(timeIntervalSince1970: TimeInterval(shared_pub_user!.last_online) / 1000)
+            var timeOffset = date.offset(from: Date())
+            if timeOffset == "" {
+                timeOffset = Date().offset(from: date)
+                cell.lastActiveLabel.text = "Active: \(timeOffset) ago."
+            }else{
+                cell.lastActiveLabel.text = "Active: \(timeOffset) ago."
+            }
             
             print("user \(uid) : ratings: \(user_ratings.count) , applications: \(users_applications.count)")
             
